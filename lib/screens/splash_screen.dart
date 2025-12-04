@@ -30,21 +30,46 @@ class _SplashScreenState extends State<SplashScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Image.asset(
-              'assets/logo.png',
+              'assets/logo.jpeg',
               width: 150,
               height: 150,
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 2),
+
+            // Main Title (matches logo style)
             Text(
-              'Scholar_Nest',
+              'SCHOLOR NEST',
               style: TextStyle(
-                fontSize: 38,
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF1B3C53),
+                fontFamily: 'Literata',        // closest match to logo style
+                fontSize: 26,
+                fontWeight: FontWeight.w800,   // thick bold like logo
+                letterSpacing: 2.2,            // matches the logo spacing
+                color: Color(0xFF0D1C2E),      // very dark navy (same as logo)
               ),
             ),
+
+            const SizedBox(height: 6),
+
+            // Underline bars (same as logo)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 55,
+                  height: 2.2,
+                  color: Color(0xFF0D1C2E),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  width: 55,
+                  height: 2.2,
+                  color: Color(0xFF0D1C2E),
+                ),
+              ],
+            ),
           ],
-        ),
+        )
+
       ),
     );
   }
