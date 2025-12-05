@@ -29,28 +29,32 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.asset(
-              'assets/logo.jpeg',
-              width: 150,
-              height: 150,
-            ),
-            const SizedBox(height: 2),
 
-            // Main Title (matches logo style)
-            Text(
-              'SCHOLOR NEST',
-              style: TextStyle(
-                fontFamily: 'Literata',        // closest match to logo style
-                fontSize: 26,
-                fontWeight: FontWeight.w800,   // thick bold like logo
-                letterSpacing: 2.2,            // matches the logo spacing
-                color: Color(0xFF0D1C2E),      // very dark navy (same as logo)
+            /// 🔥 FIXED SPACING — looks exactly like your screenshot
+            ClipRect(
+              child: Image.asset(
+                'assets/logo.jpeg',
+                width: 150,
+                height: 120,
+                fit: BoxFit.fill,
               ),
             ),
 
-            const SizedBox(height: 6),
+            const SizedBox(height: 2),
 
-            // Underline bars (same as logo)
+            Text(
+              'SCHOLOR NEST',
+              style: TextStyle(
+                fontFamily: 'Literata',
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 2.2,
+                color: Color(0xFF0D1C2E),
+              ),
+            ),
+
+            const SizedBox(height: 2),
+
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -59,7 +63,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   height: 2.2,
                   color: Color(0xFF0D1C2E),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 2),
                 Container(
                   width: 55,
                   height: 2.2,
@@ -68,8 +72,7 @@ class _SplashScreenState extends State<SplashScreen> {
               ],
             ),
           ],
-        )
-
+        ),
       ),
     );
   }

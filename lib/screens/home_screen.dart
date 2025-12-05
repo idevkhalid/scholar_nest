@@ -219,7 +219,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1B3C53),
                   ),
-                  child: const Text("View"),
+                  child: const Text("View",
+                      style: TextStyle(color: Colors.white)),
                 )
               ],
             ),
