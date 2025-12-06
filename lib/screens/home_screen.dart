@@ -222,6 +222,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   child: const Text("View",
                       style: TextStyle(color: Colors.white)),
                 )
+
               ],
             ),
           ),

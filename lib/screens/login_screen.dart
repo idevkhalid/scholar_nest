@@ -6,7 +6,7 @@ import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import 'register_screen.dart';
 import 'home_screen.dart';
-import 'forgot_password_screen.dart';   // <-- IMPORTANT
+import 'forgot_password_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -19,22 +19,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController emailCtrl = TextEditingController();
   final TextEditingController passCtrl = TextEditingController();
-
-  void login() async {
-    final response = await ApiService.loginUser(
-        'khalidhussaink895@gmail.com',
-        'password123'
-    );
-
-    if(response['status'] == 'success') {
-      print('Login successful');
-      print('Access Token: ${response['access_token']}');
-      // Save token using SharedPreferences and navigate to Home screen
-    } else {
-      print('Error: ${response['message']}');
-    }
-  }
-
 
   @override
   void dispose() {
@@ -64,141 +48,151 @@ class _LoginScreenState extends State<LoginScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: true, // <--- FIXES OVERFLOW
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 28),
-          child: Column(
-            children: [
-              const SizedBox(height: 28),
+        child: SingleChildScrollView(    // <--- FIXES KEYBOARD OVERFLOW
+          physics: const BouncingScrollPhysics(),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 28),
+            child: Column(
+              children: [
+                const SizedBox(height: 28),
 
-              // Logo
-              Image.asset('assets/logo.jpeg', width: 150, height: 150),
-              const SizedBox(height: 10),
+                // Logo
+                Image.asset('assets/logo.jpeg', width: 150, height: 150),
+                const SizedBox(height: 10),
 
-              const Text(
-                'Welcome Back',
-                style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 6),
+                const Text(
+                  'Welcome Back',
+                  style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 6),
 
-              Text(
-                'Sign in to continue your journey',
-                style: TextStyle(fontSize: 14, color: Colors.grey),
-              ),
-              const SizedBox(height: 24),
+                Text(
+                  'Sign in to continue your journey',
+                  style: TextStyle(fontSize: 14, color: Colors.grey),
+                ),
+                const SizedBox(height: 24),
 
-              Form(
-                key: _formKey,
-                child: Column(
-                  children: [
-                    // Email
-                    TextFormField(
-                      controller: emailCtrl,
-                      keyboardType: TextInputType.emailAddress,
-                      decoration: InputDecoration(
-                        labelText: 'Email',
-                        filled: true,
-                        fillColor: Colors.grey[100],
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                      validator: (v) {
-                        if (v == null || v.isEmpty) return 'Enter email';
-                        if (!v.contains('@')) return 'Enter valid email';
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Password
-                    TextFormField(
-                      controller: passCtrl,
-                      obscureText: true,
-                      decoration: InputDecoration(
-                        labelText: 'Password',
-                        filled: true,
-                        fillColor: Colors.grey[100],
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                      validator: (v) {
-                        if (v == null || v.isEmpty) return 'Enter password';
-                        if (v.length < 4) return 'Too short';
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 14),
-
-                    // Sign In button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _submit,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: primary,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
+                // ---------------- FORM ----------------
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      // Email Field
+                      TextFormField(
+                        controller: emailCtrl,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          labelText: 'Email',
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide.none,
                           ),
                         ),
-                        child: const Text('Sign In', style: TextStyle(fontSize: 16, color: Colors.white)),
-                      ),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    // ⚠️ Forgot Password (Now FUNCTIONAL)
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const ForgotPasswordScreen(),
-                            ),
-                          );
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Enter email';
+                          if (!v.contains('@')) return 'Enter valid email';
+                          return null;
                         },
-                        child: Text(
-                          "Forgot password?",
-                          style: TextStyle(color: primary),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Password Field
+                      TextFormField(
+                        controller: passCtrl,
+                        obscureText: true,
+                        decoration: InputDecoration(
+                          labelText: 'Password',
+                          filled: true,
+                          fillColor: Colors.grey[100],
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Enter password';
+                          if (v.length < 4) return 'Too short';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 14),
+
+                      // Sign In Button
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _submit,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primary,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text(
+                            'Sign In',
+                            style: TextStyle(fontSize: 16, color: Colors.white),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+
+                      // Forgot Password
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const ForgotPasswordScreen(),
+                              ),
+                            );
+                          },
+                          child: Text(
+                            "Forgot password?",
+                            style: TextStyle(color: primary),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
 
-              const Spacer(),
+                const SizedBox(height: 30),
 
-              // Sign up text
-              Padding(
-                padding: const EdgeInsets.only(bottom: 20),
-                child: RichText(
+                // ------------- SIGN UP LINK -------------
+                RichText(
                   text: TextSpan(
                     style: TextStyle(color: Colors.grey[800]),
                     children: [
                       const TextSpan(text: "Don't have an account? "),
                       TextSpan(
                         text: "Sign up",
-                        style: TextStyle(color: primary, fontWeight: FontWeight.w600),
+                        style: TextStyle(
+                          color: primary,
+                          fontWeight: FontWeight.w600,
+                        ),
                         recognizer: TapGestureRecognizer()
                           ..onTap = () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                              MaterialPageRoute(
+                                builder: (_) => const RegisterScreen(),
+                              ),
                             );
                           },
                       ),
                     ],
                   ),
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),
