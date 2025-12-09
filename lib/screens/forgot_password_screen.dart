@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';   // <-- IMPORTANT
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -9,6 +10,37 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final TextEditingController emailController = TextEditingController();
+  bool isLoading = false;
+
+  void sendResetRequest() async {
+    final email = emailController.text.trim();
+
+    if (email.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Please enter your email")),
+      );
+      return;
+    }
+
+    setState(() => isLoading = true);
+
+    final response = await ApiService.forgotPassword(email);
+
+    setState(() => isLoading = false);
+
+    if (response["status"] == "success") {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response["message"])),
+      );
+
+      // Navigate to OTP screen (if exists)
+      // Navigator.push(context, MaterialPageRoute(builder: (_) => OTPScreen(email: email)));
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(response["message"])),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -26,7 +58,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 child: Column(
                   children: [
                     Image.asset(
-                      'assets/logo.png',      // <-- your logo path
+                      'assets/logo.png',
                       height: 120,
                     ),
                     const SizedBox(height: 8),
@@ -90,7 +122,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {},
+                  onPressed: isLoading ? null : sendResetRequest,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1B3C53),
                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -98,9 +130,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
-                  child: const Text(
+                  child: isLoading
+                      ? const CircularProgressIndicator(
+                    color: Colors.white,
+                  )
+                      : const Text(
                     "Confirm",
-                    style: TextStyle(fontSize: 16),
+                    style: TextStyle(fontSize: 16, color: Colors.white),
                   ),
                 ),
               ),

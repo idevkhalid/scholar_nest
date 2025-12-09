@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
@@ -53,6 +52,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
     }
   }
 
+  // Confirm OTP
   Future<void> _confirm() async {
     if (_enteredOtp.length != 6) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -72,8 +72,11 @@ class _VerificationScreenState extends State<VerificationScreen> {
         const SnackBar(content: Text('Email verified successfully')),
       );
 
-      // Log user in
-      Provider.of<AuthProvider>(context, listen: false).login(widget.firstName, widget.email);
+      // Log user in using AuthProvider
+      await Provider.of<AuthProvider>(context, listen: false).login(
+        widget.firstName,
+        widget.email,
+      );
 
       // Navigate to Home screen
       Navigator.pushAndRemoveUntil(
@@ -88,16 +91,11 @@ class _VerificationScreenState extends State<VerificationScreen> {
     }
   }
 
+  // Resend OTP
   Future<void> _resendOtp() async {
     setState(() => _resending = true);
 
-    // Re-call register API to resend OTP
-    final response = await ApiService.registerUser(
-      widget.firstName + ' ' + widget.lastName,
-      widget.email,
-      widget.password,
-      widget.password,
-    );
+    final response = await ApiService.resendOtp(widget.email);
 
     setState(() => _resending = false);
 
@@ -145,11 +143,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
                       ),
                       onChanged: (v) => _onOtpChanged(i, v),
-
-                      inputFormatters: [
-                        FilteringTextInputFormatter.digitsOnly, // <-- only numbers allowed
-                      ],
-
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     ),
                   );
                 }),
@@ -192,5 +186,3 @@ class _VerificationScreenState extends State<VerificationScreen> {
     );
   }
 }
-
-

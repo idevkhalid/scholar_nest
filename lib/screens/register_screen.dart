@@ -1,35 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import '../services/api_service.dart';
 import 'verification_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
-
-
-
   const RegisterScreen({super.key});
 
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
-
-void register() async {
-  final response = await ApiService.registerUser(
-      'Khalid Hussain',
-      'khalidhussaink895@gmail.com',
-      'password123',
-      'password123'
-  );
-
-  if(response['status'] == 'success') {
-    print('User registered successfully');
-    // Navigate to OTP verification screen
-  } else {
-    print('Error: ${response['message']}');
-  }
-}
-
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final _formKey = GlobalKey<FormState>();
@@ -38,6 +17,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final emailCtrl = TextEditingController();
   final passCtrl = TextEditingController();
   final confirmCtrl = TextEditingController();
+
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -49,20 +30,45 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
-  void _next() {
+  void _next() async {
     if (_formKey.currentState?.validate() ?? false) {
-      // Pass data to verification screen
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => VerificationScreen(
-            email: emailCtrl.text.trim(),
-            firstName: fnCtrl.text.trim(),
-            lastName: lnCtrl.text.trim(),
-            password: passCtrl.text,
-          ),
-        ),
+      setState(() {
+        _isLoading = true;
+      });
+
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+      final response = await authProvider.register(
+        fName: fnCtrl.text.trim(),
+        lName: lnCtrl.text.trim(),
+        email: emailCtrl.text.trim(),
+        password: passCtrl.text,
+        passwordConfirmation: confirmCtrl.text,
       );
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      if (response['status'] == 'success') {
+        // Navigate to OTP Verification Screen
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => VerificationScreen(
+              email: emailCtrl.text.trim(),
+              firstName: fnCtrl.text.trim(),
+              lastName: lnCtrl.text.trim(),
+              password: passCtrl.text,
+            ),
+          ),
+        );
+      } else {
+        // Show error
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(response['message'] ?? 'Registration failed')),
+        );
+      }
     }
   }
 
@@ -89,7 +95,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     key: _formKey,
                     child: Column(
                       children: [
-                        // First name
                         TextFormField(
                           controller: fnCtrl,
                           decoration: _inputDecoration('First Name'),
@@ -97,7 +102,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         const SizedBox(height: 10),
 
-                        // Last name
                         TextFormField(
                           controller: lnCtrl,
                           decoration: _inputDecoration('Last Name'),
@@ -105,7 +109,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         const SizedBox(height: 10),
 
-                        // Email
                         TextFormField(
                           controller: emailCtrl,
                           decoration: _inputDecoration('Email'),
@@ -118,7 +121,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         const SizedBox(height: 10),
 
-                        // Password
                         TextFormField(
                           controller: passCtrl,
                           decoration: _inputDecoration('Password'),
@@ -131,7 +133,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                         const SizedBox(height: 10),
 
-                        // Confirm password
                         TextFormField(
                           controller: confirmCtrl,
                           decoration: _inputDecoration('Confirm Password'),
@@ -147,13 +148,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         SizedBox(
                           width: double.infinity,
                           child: ElevatedButton(
-                            onPressed: _next,
+                            onPressed: _isLoading ? null : _next,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: primary,
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                             ),
-                            child: const Text('NEXT', style: TextStyle(fontSize: 16,color: Colors.white)),
+                            child: _isLoading
+                                ? const CircularProgressIndicator(color: Colors.white)
+                                : const Text('NEXT', style: TextStyle(fontSize: 16,color: Colors.white)),
                           ),
                         ),
 
