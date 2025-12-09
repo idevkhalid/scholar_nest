@@ -4,7 +4,9 @@ import 'package:http/http.dart' as http;
 class ApiService {
   static const String baseUrl = "https://scholarnest.codessol.com/api/auth";
 
-  // Register
+  // -------------------------
+  // REGISTER USER
+  // -------------------------
   static Future<Map<String, dynamic>> registerUser({
     required String fName,
     required String lName,
@@ -28,7 +30,6 @@ class ApiService {
 
     final data = jsonDecode(response.body);
 
-    // Handle errors
     if (response.statusCode != 201) {
       return {
         "status": "error",
@@ -36,7 +37,6 @@ class ApiService {
       };
     }
 
-    // Success: just return response
     return {
       "status": data["status"],
       "message": data["message"],
@@ -46,9 +46,11 @@ class ApiService {
     };
   }
 
-
-  // Login
-  static Future<Map<String, dynamic>> loginUser(String email, String password) async {
+  // -------------------------
+  // LOGIN
+  // -------------------------
+  static Future<Map<String, dynamic>> loginUser(
+      String email, String password) async {
     final url = Uri.parse('$baseUrl/login');
 
     final response = await http.post(
@@ -62,15 +64,13 @@ class ApiService {
 
     final data = jsonDecode(response.body);
 
-    // Handle error status code
     if (response.statusCode != 200) {
       return {
         "status": "error",
-        "message": data["message"] ?? "Login failed. Something went wrong.",
+        "message": data["message"] ?? "Login failed",
       };
     }
 
-    // Success
     return {
       "status": "success",
       "message": data["message"],
@@ -80,7 +80,9 @@ class ApiService {
     };
   }
 
-  // Forgot password
+  // -------------------------
+  // FORGOT PASSWORD
+  // -------------------------
   static Future<Map<String, dynamic>> forgotPassword(String email) async {
     final url = Uri.parse('$baseUrl/forgot-password');
 
@@ -92,7 +94,6 @@ class ApiService {
 
     final data = jsonDecode(response.body);
 
-    // If email not found or server error
     if (response.statusCode != 200) {
       return {
         "status": "error",
@@ -100,15 +101,17 @@ class ApiService {
       };
     }
 
-    // Success
     return {
       "status": "success",
       "message": data["message"],
     };
   }
 
-  // Verify OTP
-  static Future<Map<String, dynamic>> verifyOtp(String email, String otp) async {
+  // -------------------------
+  // VERIFY OTP
+  // -------------------------
+  static Future<Map<String, dynamic>> verifyOtp(
+      {required String email, required String otp}) async {
     final url = Uri.parse('$baseUrl/verify-otp');
 
     final response = await http.post(
@@ -122,7 +125,6 @@ class ApiService {
 
     final data = jsonDecode(response.body);
 
-    // Handle errors
     if (response.statusCode != 200) {
       return {
         "status": "error",
@@ -130,14 +132,15 @@ class ApiService {
       };
     }
 
-    // Success
     return {
       "status": data["status"],
       "message": data["message"],
     };
   }
 
-  // Resend OTP
+  // -------------------------
+  // RESEND OTP
+  // -------------------------
   static Future<Map<String, dynamic>> resendOtp(String email) async {
     final url = Uri.parse('$baseUrl/resend-otp');
 
@@ -149,7 +152,6 @@ class ApiService {
 
     final data = jsonDecode(response.body);
 
-    // Handle errors
     if (response.statusCode != 200) {
       return {
         "status": "error",
@@ -157,12 +159,47 @@ class ApiService {
       };
     }
 
-    // Success
     return {
       "status": data["status"],
       "message": data["message"],
     };
   }
 
+  // -------------------------
+// RESET PASSWORD
+// -------------------------
+  static Future<Map<String, dynamic>> resetPassword({
+    required String email,
+    required String otp,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    final url = Uri.parse('$baseUrl/reset-password');
+
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json"},
+      body: jsonEncode({
+        "email": email,
+        "otp_code": otp,
+        "password": password,
+        "password_confirmation": passwordConfirmation,
+      }),
+    );
+
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode != 200) {
+      return {
+        "status": "error",
+        "message": data["message"] ?? "Password reset failed",
+      };
+    }
+
+    return {
+      "status": data["status"],
+      "message": data["message"],
+    };
+  }
 
 }

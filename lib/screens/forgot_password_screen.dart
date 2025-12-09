@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import '../services/api_service.dart';   // <-- IMPORTANT
+import '../services/api_service.dart';
+import 'forgot_password_otp_screen.dart'; // Navigate to OTP screen
+import '../constants/colors.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -33,11 +35,15 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         SnackBar(content: Text(response["message"])),
       );
 
-      // Navigate to OTP screen (if exists)
-      // Navigator.push(context, MaterialPageRoute(builder: (_) => OTPScreen(email: email)));
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => OtpVerificationScreen(email: email),
+        ),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(response["message"])),
+        SnackBar(content: Text(response["message"] ?? "Failed to send OTP")),
       );
     }
   }
@@ -45,102 +51,180 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 40),
+        child: GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: IntrinsicHeight(
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 40),
 
-              // Logo
-              Center(
-                child: Column(
-                  children: [
-                    Image.asset(
-                      'assets/logo.png',
-                      height: 120,
+                        // --- Logo & App Name ---
+                        Center(
+                          child: Column(
+                            children: [
+                              Container(
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.grey.withOpacity(0.3),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 5),
+                                    ),
+                                  ],
+                                ),
+                                child: CircleAvatar(
+                                  radius: 60,
+                                  backgroundColor: Colors.white,
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(10),
+                                    child: Image.asset(
+                                      'assets/logo.jpeg',
+                                      fit: BoxFit.contain,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              RichText(
+                                text: TextSpan(
+                                  style: const TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1,
+                                  ),
+                                  children: [
+                                    TextSpan(
+                                      text: "SCHOLAR ",
+                                      style: TextStyle(color: AppColors.primary),
+                                    ),
+                                    TextSpan(
+                                      text: "NEST",
+                                      style: TextStyle(color: AppColors.secondary),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 40),
+
+                        // --- Card Form ---
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(25),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.grey.withOpacity(0.2),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 5),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  "Forgot Password?",
+                                  style: TextStyle(
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  "Enter your registered email address to receive an OTP.",
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(height: 25),
+
+                                // Email Field
+                                TextField(
+                                  controller: emailController,
+                                  keyboardType: TextInputType.emailAddress,
+                                  decoration: InputDecoration(
+                                    labelText: "Email",
+                                    hintText: "example@gmail.com",
+                                    floatingLabelBehavior:
+                                    FloatingLabelBehavior.always,
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide(
+                                          color: AppColors.primary),
+                                    ),
+                                    prefixIcon: Icon(
+                                      Icons.email_outlined,
+                                      color: AppColors.primary,
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 12, vertical: 18),
+                                  ),
+                                ),
+                                const SizedBox(height: 30),
+
+                                // Confirm Button
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton(
+                                    onPressed:
+                                    isLoading ? null : sendResetRequest,
+                                    style: ElevatedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                          vertical: 16),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      backgroundColor: AppColors.primary,
+                                    ),
+                                    child: isLoading
+                                        ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        color: Colors.white,
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                        : const Text(
+                                      "Send OTP",
+                                      style: TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.white),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        const Spacer(),
+                      ],
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      "SCHOLOR NEST",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 60),
-
-              const Text(
-                "FORGOT PASSWORD?",
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(height: 6),
-
-              const Text(
-                "Please enter your email address you may have used.",
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 13,
-                ),
-              ),
-
-              const SizedBox(height: 25),
-
-              const Text(
-                "Email",
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-
-              const SizedBox(height: 6),
-
-              TextField(
-                controller: emailController,
-                decoration: InputDecoration(
-                  hintText: "example@gmail.com",
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                ),
-              ),
-
-              const SizedBox(height: 30),
-
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: isLoading ? null : sendResetRequest,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1B3C53),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: isLoading
-                      ? const CircularProgressIndicator(
-                    color: Colors.white,
-                  )
-                      : const Text(
-                    "Confirm",
-                    style: TextStyle(fontSize: 16, color: Colors.white),
                   ),
                 ),
-              ),
-            ],
+              );
+            },
           ),
         ),
       ),

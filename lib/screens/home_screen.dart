@@ -5,7 +5,7 @@ import '../providers/filter_provider.dart';
 import '../providers/saved_provider.dart';
 import '../providers/auth_provider.dart';
 import 'login_screen.dart';
-import 'profile_screen.dart'; // <-- ADD THIS (your profile page)
+import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -38,31 +38,6 @@ class _HomeScreenState extends State<HomeScreen> {
       'deadline': 'Jan 15, 2026',
       'country': 'UK',
     },
-    {
-      'title': 'Merit-Based Scholarship',
-      'institution': 'Oxford University',
-      'badge': '\$30,000/year',
-      'deadline': 'Jan 15, 2026',
-      'country': 'UK',
-    }, {
-      'title': 'Merit-Based Scholarship',
-      'institution': 'Oxford University',
-      'badge': '\$30,000/year',
-      'deadline': 'Jan 15, 2026',
-      'country': 'UK',
-    }, {
-      'title': 'Merit-Based Scholarship',
-      'institution': 'Oxford University',
-      'badge': '\$30,000/year',
-      'deadline': 'Jan 15, 2026',
-      'country': 'UK',
-    }, {
-      'title': 'Merit-Based Scholarship',
-      'institution': 'Oxford University',
-      'badge': '\$30,000/year',
-      'deadline': 'Jan 15, 2026',
-      'country': 'UK',
-    },
   ];
 
   void _onItemTapped(int index) {
@@ -77,21 +52,23 @@ class _HomeScreenState extends State<HomeScreen> {
     final savedProvider = Provider.of<SavedProvider>(context);
     final authProvider = Provider.of<AuthProvider>(context);
 
-    // Screens for BottomNavigationBar
     List<Widget> screens = [
       _buildHomeTab(filterProvider, savedProvider, authProvider),
       const Center(child: Text("Knowledge Screen")),
-      authProvider.isLoggedIn
-          ? const ProfileScreen() // <-- NOW OPENS PROFILE
-          : const LoginScreen(),
+      authProvider.isLoggedIn ? const ProfileScreen() : const LoginScreen(),
     ];
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF5F7FA),
       body: screens[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
+        backgroundColor: Colors.white,
         selectedItemColor: const Color(0xFF1B3C53),
+        unselectedItemColor: Colors.grey,
+        showUnselectedLabels: true,
+        elevation: 10,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(icon: Icon(Icons.menu_book), label: 'Knowledge'),
@@ -102,67 +79,73 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildHomeTab(
-      FilterProvider filterProvider,
-      SavedProvider savedProvider,
-      AuthProvider authProvider,
-      ) {
+      FilterProvider filterProvider, SavedProvider savedProvider, AuthProvider authProvider) {
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.all(15),
         children: [
-          // Top Bar + Search
+          // ---------------- HEADER ----------------
           Row(
             children: [
-              Image.asset('assets/logo.jpeg', width: 40, height: 40),
-              const SizedBox(width: 10),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(50),
+                child: Image.asset('assets/logo.jpeg', width: 45, height: 45),
+              ),
+              const SizedBox(width: 12),
               Expanded(
-                child: SizedBox(
-                  height: 38, // smaller height
-                  child: TextField(
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(25),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 6,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: const TextField(
                     decoration: InputDecoration(
                       hintText: 'Search scholarships...',
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(25),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[200],
-                      prefixIcon: const Icon(Icons.search),
+                      prefixIcon: Icon(Icons.search, color: Colors.grey),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 15),
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               IconButton(
                 onPressed: () {},
-                icon: const Icon(Icons.notifications),
+                icon: const Icon(Icons.notifications, color: Color(0xFF1B3C53)),
               ),
             ],
           ),
-          const SizedBox(height: 12),
 
-          // Filters (clean + compact)
+          const SizedBox(height: 15),
+
+          // ---------------- FILTERS ----------------
           SizedBox(
-            height: 40,
+            height: 42,
             child: ListView(
               scrollDirection: Axis.horizontal,
               children: [
-                FilterDropdown(
+                FilterChipDropdown(
                   value: filterProvider.country,
                   items: const ['All Countries', 'USA', 'UK', 'Canada'],
                   onChanged: filterProvider.setCountry,
                   icon: Icons.public,
                 ),
                 const SizedBox(width: 8),
-                FilterDropdown(
+                FilterChipDropdown(
                   value: filterProvider.degree,
                   items: const ['All Degrees', 'Bachelor', 'Master', 'PhD'],
                   onChanged: filterProvider.setDegree,
                   icon: Icons.school,
                 ),
                 const SizedBox(width: 8),
-                FilterDropdown(
+                FilterChipDropdown(
                   value: filterProvider.major,
                   items: const ['All Majors', 'Engineering', 'Science', 'Arts'],
                   onChanged: filterProvider.setMajor,
@@ -172,84 +155,35 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 15),
 
-          // Carousel
+          // ---------------- SLIDER ----------------
           CarouselSlider(
             items: banners
-                .map(
-                  (banner) => ClipRRect(
-                borderRadius: BorderRadius.circular(15),
-                child: Image.asset(
-                  banner,
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                ),
+                .map((banner) => ClipRRect(
+              borderRadius: BorderRadius.circular(15),
+              child: Image.asset(
+                banner,
+                fit: BoxFit.cover,
+                width: double.infinity,
               ),
-            )
+            ))
                 .toList(),
             options: CarouselOptions(
-              height: 150,
-              autoPlayInterval: const Duration(seconds: 2),
+              height: 160,
               autoPlay: true,
               enlargeCenterPage: true,
+              autoPlayInterval: const Duration(seconds: 3),
               viewportFraction: 0.92,
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          // Ad Container
-          Container(
-            padding: const EdgeInsets.all(15),
-            decoration: BoxDecoration(
-              color: Colors.blueGrey[50],
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'Special Scholarship Ad',
-                  style: TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w600),
-                ),
-                ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1B3C53),
-                  ),
-                  child: const Text("View",
-                      style: TextStyle(color: Colors.white)),
-                )
-
-              ],
             ),
           ),
 
           const SizedBox(height: 15),
 
-          // Section Title
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text(
-                "Latest Opportunities",
-                style:
-                TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              Text(
-                "See All",
-                style: TextStyle(color: Colors.grey),
-              )
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Scholarship Cards
+          // ---------------- SCHOLARSHIPS ----------------
           ...scholarships.map((item) {
             bool isSaved = savedProvider.isSaved(item);
-            return ScholarshipCard(
+            return AnimatedScholarshipCard(
               title: item['title']!,
               institution: item['institution']!,
               badge: item['badge']!,
@@ -260,9 +194,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 if (!authProvider.isLoggedIn) {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => const LoginScreen(),
-                    ),
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
                   );
                 } else {
                   savedProvider.toggleSave(item);
@@ -276,15 +208,14 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// -------------------- FILTER DROPDOWN --------------------
-
-class FilterDropdown extends StatelessWidget {
+// ------------------ FILTER CHIP ------------------
+class FilterChipDropdown extends StatelessWidget {
   final String value;
   final List<String> items;
   final void Function(String) onChanged;
   final IconData icon;
 
-  const FilterDropdown({
+  const FilterChipDropdown({
     super.key,
     required this.value,
     required this.items,
@@ -295,22 +226,29 @@ class FilterDropdown extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFF1B3C53), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          )
+        ],
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
-          icon: Icon(icon, size: 18, color: Colors.grey[700]),
+          icon: Icon(icon, size: 18, color: const Color(0xFF1B3C53)),
           onChanged: (v) => onChanged(v!),
           items: items
               .map((e) => DropdownMenuItem(
             value: e,
             child: Text(
               e,
-              overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 14),
             ),
           ))
@@ -321,14 +259,13 @@ class FilterDropdown extends StatelessWidget {
   }
 }
 
-// -------------------- SCHOLARSHIP CARD --------------------
-
-class ScholarshipCard extends StatelessWidget {
+// ------------------ SCHOLARSHIP CARD ------------------
+class AnimatedScholarshipCard extends StatefulWidget {
   final String title, institution, badge, deadline, country;
   final void Function() onSave;
   final bool isSaved;
 
-  const ScholarshipCard({
+  const AnimatedScholarshipCard({
     super.key,
     required this.title,
     required this.institution,
@@ -340,73 +277,84 @@ class ScholarshipCard extends StatelessWidget {
   });
 
   @override
+  State<AnimatedScholarshipCard> createState() => _AnimatedScholarshipCardState();
+}
+
+class _AnimatedScholarshipCardState extends State<AnimatedScholarshipCard> {
+  double _scale = 1.0;
+
+  @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 10),
-      shape:
-      RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      child: Padding(
-        padding: const EdgeInsets.all(15),
-        child: Column(
-          crossAxisAlignment:
-          CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return GestureDetector(
+      onTapDown: (_) => setState(() => _scale = 0.97),
+      onTapUp: (_) => setState(() => _scale = 1.0),
+      onTapCancel: () => setState(() => _scale = 1.0),
+      child: AnimatedScale(
+        scale: _scale,
+        duration: const Duration(milliseconds: 120),
+        child: Card(
+          color: Colors.white,
+          margin: const EdgeInsets.symmetric(vertical: 10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          elevation: 3,
+          shadowColor: Colors.black.withOpacity(0.08),
+          child: Padding(
+            padding: const EdgeInsets.all(15),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: Colors.green[100],
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    badge,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold),
-                  ),
+                // Badge + Save
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDFF3E9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        widget.badge,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1B3C53),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: widget.onSave,
+                      icon: Icon(
+                        widget.isSaved ? Icons.bookmark : Icons.bookmark_border,
+                        color: const Color(0xFF1B3C53),
+                      ),
+                    ),
+                  ],
                 ),
-                IconButton(
-                  onPressed: onSave,
-                  icon: Icon(
-                    isSaved
-                        ? Icons.bookmark
-                        : Icons.bookmark_border,
-                    color: const Color(0xFF1B3C53),
-                  ),
-                )
+
+                const SizedBox(height: 10),
+
+                Text(
+                  widget.title,
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 5),
+
+                Text(
+                  widget.institution,
+                  style: const TextStyle(color: Colors.black54, fontSize: 14),
+                ),
+                const SizedBox(height: 10),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(widget.deadline, style: const TextStyle(color: Colors.grey)),
+                    Text(widget.country, style: const TextStyle(color: Colors.grey)),
+                  ],
+                ),
               ],
             ),
-            const SizedBox(height: 10),
-            Text(
-              title,
-              style: const TextStyle(
-                  fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 5),
-            Text(
-              institution,
-              style: const TextStyle(color: Colors.grey),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment:
-              MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  deadline,
-                  style: const TextStyle(
-                      color: Colors.grey, fontSize: 12),
-                ),
-                Text(
-                  country,
-                  style: const TextStyle(
-                      color: Colors.grey, fontSize: 12),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );

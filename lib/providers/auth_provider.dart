@@ -48,37 +48,49 @@ class AuthProvider with ChangeNotifier {
   }
 
   // Login via API
-  Future<Map<String, dynamic>> login(String email, String password) async {
-    final response = await ApiService.loginUser(email, password);
+  Future<bool> login(String email, String password) async {
+    try {
+      final response = await ApiService.loginUser(email, password);
 
-    if (response['status'] == 'success') {
-      await _saveUser(response['user'], response['access_token']);
+      if (response['status'] == 'success') {
+        await _saveUser(response['user'], response['access_token']);
+        return true; // Login successful
+      } else {
+        return false; // Login failed
+      }
+    } catch (e) {
+      debugPrint("Login error: $e");
+      return false;
     }
-
-    return response;
   }
 
   // Register via API
-  Future<Map<String, dynamic>> register({
+  Future<bool> register({
     required String fName,
     required String lName,
     required String email,
     required String password,
     required String passwordConfirmation,
   }) async {
-    final response = await ApiService.registerUser(
-      fName: fName,
-      lName: lName,
-      email: email,
-      password: password,
-      passwordConfirmation: passwordConfirmation,
-    );
+    try {
+      final response = await ApiService.registerUser(
+        fName: fName,
+        lName: lName,
+        email: email,
+        password: password,
+        passwordConfirmation: passwordConfirmation,
+      );
 
-    if (response['status'] == 'success') {
-      await _saveUser(response['user'], response['access_token']);
+      if (response['status'] == 'success') {
+        await _saveUser(response['user'], response['access_token']);
+        return true; // Registration successful
+      } else {
+        return false; // Registration failed
+      }
+    } catch (e) {
+      debugPrint("Register error: $e");
+      return false;
     }
-
-    return response;
   }
 
   // Logout

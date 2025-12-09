@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../constants/colors.dart';
 import 'intro_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -9,10 +10,34 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _fade;
+  late Animation<Offset> _slide;
+
   @override
   void initState() {
     super.initState();
+
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+
+    _fade = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
+    );
+
+    _slide = Tween<Offset>(
+      begin: const Offset(0, 0.18),
+      end: Offset.zero,
+    ).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeOut),
+    );
+
+    _controller.forward();
+
     Timer(const Duration(seconds: 3), () {
       Navigator.pushReplacement(
         context,
@@ -22,56 +47,69 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppColors.backgroundGradient, // use same gradient as login/intro
+        ),
+        child: Center(
+          child: FadeTransition(
+            opacity: _fade,
+            child: SlideTransition(
+              position: _slide,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  /// ROUND LOGO
+                  Container(
+                    width: 150,
+                    height: 150,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      image: DecorationImage(
+                        image: AssetImage('assets/logo.jpeg'),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
 
-            /// 🔥 FIXED SPACING — looks exactly like your screenshot
-            ClipRect(
-              child: Image.asset(
-                'assets/logo.jpeg',
-                width: 150,
-                height: 120,
-                fit: BoxFit.fill,
+                  const SizedBox(height: 16),
+
+                  /// APP NAME
+                  Text(
+                    'Scholar Nest',
+                    style: TextStyle(
+                      fontFamily: 'Literata',
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.primary,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+
+                  const SizedBox(height: 8),
+
+                  /// SUBTITLE
+                  Text(
+                    'Learn • Grow • Achieve',
+                    style: TextStyle(
+                      fontFamily: 'Literata',
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
               ),
             ),
-
-            const SizedBox(height: 2),
-
-            Text(
-              'SCHOLOR NEST',
-              style: TextStyle(
-                fontFamily: 'Literata',
-                fontSize: 22,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 2.2,
-                color: Color(0xFF0D1C2E),
-              ),
-            ),
-
-            const SizedBox(height: 2),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 55,
-                  height: 2.2,
-                  color: Color(0xFF0D1C2E),
-                ),
-                const SizedBox(width: 2),
-                Container(
-                  width: 55,
-                  height: 2.2,
-                  color: Color(0xFF0D1C2E),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );
