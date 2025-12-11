@@ -1,37 +1,49 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Primary color for buttons, headers, and highlights
+  // Main color used in theme
   static const Color primary = Color(0xFF1B3C53);
 
-  // Scaffold or screen background
+  // Background fallback color
   static const Color background = Color(0xFFEAF1F8);
 
-  // Optional gradient for screens or headers
+  // Text colors
+  static const Color textPrimary = Color(0xFF1B3C53);
+  static const Color textSecondary = Color(0xFF7B7B7B);
+
+  // Card background
+  static const Color cardBackground = Colors.white;
+
+  // Success & error colors
+  static const Color error = Colors.red;
+  static const Color success = Colors.green;
+
+  // Gradient Top/Bottom raw color values
+  static const Color gradientTop = Color(0x6677A9FF); // 40% transparent
+  static const Color gradientBottom = Colors.white;
+
+  // FINAL background gradient (exact like your sample)
   static const LinearGradient backgroundGradient = LinearGradient(
-    colors: [Color(0xFFB9D6F2), Color(0xFFEAF1F8)],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [
+      Color(0x9977A9FF),
+
+      Colors.white,      // white at bottom
+    ],
+  );
+
+  // Primary gradient (if needed for buttons)
+  static const LinearGradient primaryGradient = LinearGradient(
+    colors: [
+      Color(0xFF1B3C53),
+      Color(0xFF1B3C53),
+    ],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
-  // Text colors
-  static const Color textPrimary = Color(0xFF1B3C53); // dark text
-  static const Color textSecondary = Color(0xFF7B7B7B); // gray text
-
-  // Card or container background
-  static const Color cardBackground = Colors.white;
-
-  // Optional for special purposes
-  static const Color error = Colors.red;
-  static const Color success = Colors.green;
-
-  static const Color? tileBackground = null;
-
-static const LinearGradient primaryGradient = LinearGradient(
-  colors: [Color(0xFF1B3C53), Color(0xFF1B3C53)],
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
-);
-
   static Color? get secondary => null;
+
+  static Color? get tileBackground => null;
 }

@@ -1,11 +1,11 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../providers/auth_provider.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
 import 'verification_screen.dart';
+import '../constants/colors.dart'; // import AppColors
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -56,7 +56,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       setState(() => _isLoading = false);
 
       if (success) {
-        /// ✅ GO TO OTP SCREEN (FIXED)
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -78,16 +77,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final primary = const Color(0xFF1B3C53);
-
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFB9D6F2), Color(0xFFEAF1F8)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+        decoration: BoxDecoration(
+          gradient: AppColors.backgroundGradient,
         ),
         child: SafeArea(
           child: Center(
@@ -100,7 +93,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   // --- Circular Logo ---
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.cardBackground,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
@@ -115,14 +108,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
 
                   const SizedBox(height: 20),
-                  const Text(
+                  // --- Heading ---
+                  Text(
                     'Create Account',
-                    style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary, // updated for SplashScreen consistency
+                    ),
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Sign up to start your journey',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[800]),
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.textSecondary?.withOpacity(0.8),
+                    ),
                   ),
                   const SizedBox(height: 30),
 
@@ -131,7 +132,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     margin: const EdgeInsets.symmetric(horizontal: 20),
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.cardBackground,
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
@@ -179,7 +180,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                           const SizedBox(height: 20),
 
-                          /// SIGN UP BUTTON
+                          // --- Sign Up Button ---
                           SizedBox(
                             width: double.infinity,
                             height: 50,
@@ -193,11 +194,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                               child: Ink(
                                 decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [Color(0xFF1B3C53), Color(0xFF3B6A88)],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
+                                  gradient: AppColors.primaryGradient,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Container(
@@ -209,9 +206,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       : const Text(
                                     'Sign Up',
                                     style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.white),
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -223,16 +221,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   ),
 
                   const SizedBox(height: 20),
-
                   RichText(
                     text: TextSpan(
-                      style: TextStyle(color: Colors.grey[800]),
+                      style: TextStyle(color: AppColors.textPrimary),
                       children: [
                         const TextSpan(text: "Already have an account? "),
                         TextSpan(
                           text: "Sign in",
-                          style: TextStyle(
-                            color: primary,
+                          style: const TextStyle(
+                            color: AppColors.primary,
                             fontWeight: FontWeight.w600,
                           ),
                           recognizer: TapGestureRecognizer()
@@ -281,13 +278,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF1B3C53), width: 2),
+          borderSide: const BorderSide(color: AppColors.primary, width: 2),
         ),
       ),
       validator: (v) {
         if (v == null || v.isEmpty) return 'Enter $label';
-        if ((label == 'Password' || label == 'Confirm Password') &&
-            v.length < 4) {
+        if ((label == 'Password' || label == 'Confirm Password') && v.length < 4) {
           return 'Too short';
         }
         if (label == 'Email' && !v.contains('@')) return 'Enter valid email';

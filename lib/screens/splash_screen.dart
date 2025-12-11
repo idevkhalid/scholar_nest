@@ -12,6 +12,7 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
+
   late AnimationController _controller;
   late Animation<double> _fade;
   late Animation<Offset> _slide;
@@ -21,7 +22,7 @@ class _SplashScreenState extends State<SplashScreen>
     super.initState();
 
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 15000),
       vsync: this,
     );
 
@@ -30,7 +31,7 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _slide = Tween<Offset>(
-      begin: const Offset(0, 0.18),
+      begin: const Offset(0, 0.15),
       end: Offset.zero,
     ).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOut),
@@ -57,56 +58,34 @@ class _SplashScreenState extends State<SplashScreen>
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          gradient: AppColors.backgroundGradient, // use same gradient as login/intro
+          gradient: AppColors.backgroundGradient,
         ),
         child: Center(
           child: FadeTransition(
             opacity: _fade,
             child: SlideTransition(
               position: _slide,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  /// ROUND LOGO
-                  Container(
-                    width: 150,
-                    height: 150,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      image: DecorationImage(
-                        image: AssetImage('assets/logo.jpeg'),
-                        fit: BoxFit.cover,
-                      ),
+              child: Container(
+                width: 170,
+                height: 170,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Colors.white, // EXACT like your screenshot
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
                     ),
+                  ],
+                ),
+                padding: const EdgeInsets.all(22),
+                child: ClipOval(
+                  child: Image.asset(
+                    'assets/logo.jpeg',
+                    fit: BoxFit.cover, // makes logo perfectly round
                   ),
-
-                  const SizedBox(height: 16),
-
-                  /// APP NAME
-                  Text(
-                    'Scholar Nest',
-                    style: TextStyle(
-                      fontFamily: 'Literata',
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.primary,
-                      letterSpacing: 1.5,
-                    ),
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  /// SUBTITLE
-                  Text(
-                    'Learn • Grow • Achieve',
-                    style: TextStyle(
-                      fontFamily: 'Literata',
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ),

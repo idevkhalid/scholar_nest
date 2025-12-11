@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/filter_provider.dart';
 import '../providers/saved_provider.dart';
 import '../providers/auth_provider.dart';
+import '../constants/colors.dart';
 import 'login_screen.dart';
 import 'profile_screen.dart';
 
@@ -59,13 +60,17 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F7FA),
-      body: screens[_selectedIndex],
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppColors.backgroundGradient,
+        ),
+        child: screens[_selectedIndex],
+      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         backgroundColor: Colors.white,
-        selectedItemColor: const Color(0xFF1B3C53),
+        selectedItemColor: AppColors.primary,
         unselectedItemColor: Colors.grey,
         showUnselectedLabels: true,
         elevation: 10,
@@ -82,53 +87,41 @@ class _HomeScreenState extends State<HomeScreen> {
       FilterProvider filterProvider, SavedProvider savedProvider, AuthProvider authProvider) {
     return SafeArea(
       child: ListView(
-        padding: const EdgeInsets.all(15),
+        padding: EdgeInsets.zero,
         children: [
-          // ---------------- HEADER ----------------
-          Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(50),
-                child: Image.asset('assets/logo.jpeg', width: 45, height: 45),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(25),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 6,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: const TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Search scholarships...',
-                      prefixIcon: Icon(Icons.search, color: Colors.grey),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 15),
-                    ),
-                  ),
+          // ---------------- FLOATING SEARCH BAR ----------------
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
+            transform: Matrix4.translationValues(0.0, -0.0, 0.0), // removed header offset
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(25),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
                 ),
+              ],
+            ),
+            child: const TextField(
+              decoration: InputDecoration(
+                hintText: "Search scholarships...",
+                prefixIcon: Icon(Icons.search, color: Color(0xFF1B3C53)),
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 14),
               ),
-              const SizedBox(width: 12),
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.notifications, color: Color(0xFF1B3C53)),
-              ),
-            ],
+            ),
           ),
 
           const SizedBox(height: 15),
 
           // ---------------- FILTERS ----------------
           SizedBox(
-            height: 42,
+            height: 45,
             child: ListView(
+              padding: const EdgeInsets.symmetric(horizontal: 15),
               scrollDirection: Axis.horizontal,
               children: [
                 FilterChipDropdown(
@@ -137,14 +130,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   onChanged: filterProvider.setCountry,
                   icon: Icons.public,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 FilterChipDropdown(
                   value: filterProvider.degree,
                   items: const ['All Degrees', 'Bachelor', 'Master', 'PhD'],
                   onChanged: filterProvider.setDegree,
                   icon: Icons.school,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 FilterChipDropdown(
                   value: filterProvider.major,
                   items: const ['All Majors', 'Engineering', 'Science', 'Arts'],
@@ -160,12 +153,25 @@ class _HomeScreenState extends State<HomeScreen> {
           // ---------------- SLIDER ----------------
           CarouselSlider(
             items: banners
-                .map((banner) => ClipRRect(
-              borderRadius: BorderRadius.circular(15),
-              child: Image.asset(
-                banner,
-                fit: BoxFit.cover,
-                width: double.infinity,
+                .map((banner) => Container(
+              margin: const EdgeInsets.symmetric(horizontal: 5),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(15),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  )
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(15),
+                child: Image.asset(
+                  banner,
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                ),
               ),
             ))
                 .toList(),
@@ -178,30 +184,37 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ),
 
-          const SizedBox(height: 15),
+          const SizedBox(height: 20),
 
           // ---------------- SCHOLARSHIPS ----------------
-          ...scholarships.map((item) {
-            bool isSaved = savedProvider.isSaved(item);
-            return AnimatedScholarshipCard(
-              title: item['title']!,
-              institution: item['institution']!,
-              badge: item['badge']!,
-              deadline: item['deadline']!,
-              country: item['country']!,
-              isSaved: isSaved,
-              onSave: () {
-                if (!authProvider.isLoggedIn) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const LoginScreen()),
-                  );
-                } else {
-                  savedProvider.toggleSave(item);
-                }
-              },
-            );
-          }),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 15),
+            child: Column(
+              children: scholarships.map((item) {
+                bool isSaved = savedProvider.isSaved(item);
+                return ModernScholarshipCard(
+                  title: item['title']!,
+                  institution: item['institution']!,
+                  badge: item['badge']!,
+                  deadline: item['deadline']!,
+                  country: item['country']!,
+                  isSaved: isSaved,
+                  onSave: () {
+                    if (!authProvider.isLoggedIn) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const LoginScreen()),
+                      );
+                    } else {
+                      savedProvider.toggleSave(item);
+                    }
+                  },
+                );
+              }).toList(),
+            ),
+          ),
+
+          const SizedBox(height: 20),
         ],
       ),
     );
@@ -230,7 +243,7 @@ class FilterChipDropdown extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF1B3C53), width: 1),
+        border: Border.all(color: AppColors.primary, width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -242,7 +255,7 @@ class FilterChipDropdown extends StatelessWidget {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           value: value,
-          icon: Icon(icon, size: 18, color: const Color(0xFF1B3C53)),
+          icon: Icon(icon, size: 18, color: AppColors.primary),
           onChanged: (v) => onChanged(v!),
           items: items
               .map((e) => DropdownMenuItem(
@@ -259,13 +272,13 @@ class FilterChipDropdown extends StatelessWidget {
   }
 }
 
-// ------------------ SCHOLARSHIP CARD ------------------
-class AnimatedScholarshipCard extends StatefulWidget {
+// ------------------ MODERN SCHOLARSHIP CARD ------------------
+class ModernScholarshipCard extends StatefulWidget {
   final String title, institution, badge, deadline, country;
   final void Function() onSave;
   final bool isSaved;
 
-  const AnimatedScholarshipCard({
+  const ModernScholarshipCard({
     super.key,
     required this.title,
     required this.institution,
@@ -277,10 +290,10 @@ class AnimatedScholarshipCard extends StatefulWidget {
   });
 
   @override
-  State<AnimatedScholarshipCard> createState() => _AnimatedScholarshipCardState();
+  State<ModernScholarshipCard> createState() => _ModernScholarshipCardState();
 }
 
-class _AnimatedScholarshipCardState extends State<AnimatedScholarshipCard> {
+class _ModernScholarshipCardState extends State<ModernScholarshipCard> {
   double _scale = 1.0;
 
   @override
@@ -293,13 +306,16 @@ class _AnimatedScholarshipCardState extends State<AnimatedScholarshipCard> {
         scale: _scale,
         duration: const Duration(milliseconds: 120),
         child: Card(
-          color: Colors.white,
           margin: const EdgeInsets.symmetric(vertical: 10),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          elevation: 3,
-          shadowColor: Colors.black.withOpacity(0.08),
-          child: Padding(
-            padding: const EdgeInsets.all(15),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          elevation: 6,
+          shadowColor: Colors.black.withOpacity(0.12),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              color: Colors.white,
+            ),
+            padding: const EdgeInsets.all(18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -308,48 +324,68 @@ class _AnimatedScholarshipCardState extends State<AnimatedScholarshipCard> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFDFF3E9),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(12),
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF1B3C53), Color(0xFF2F5A75)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
                       ),
                       child: Text(
                         widget.badge,
                         style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1B3C53),
-                        ),
+                            fontWeight: FontWeight.bold, color: Colors.white),
                       ),
                     ),
                     IconButton(
                       onPressed: widget.onSave,
                       icon: Icon(
                         widget.isSaved ? Icons.bookmark : Icons.bookmark_border,
-                        color: const Color(0xFF1B3C53),
+                        color: Color(0xFF1B3C53),
+                        size: 28,
                       ),
                     ),
                   ],
                 ),
-
-                const SizedBox(height: 10),
-
+                const SizedBox(height: 14),
                 Text(
                   widget.title,
-                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1B3C53),
+                  ),
                 ),
-                const SizedBox(height: 5),
-
+                const SizedBox(height: 6),
                 Text(
                   widget.institution,
-                  style: const TextStyle(color: Colors.black54, fontSize: 14),
+                  style: TextStyle(
+                    color: Colors.grey[800],
+                    fontSize: 14,
+                  ),
                 ),
-                const SizedBox(height: 10),
-
+                const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(widget.deadline, style: const TextStyle(color: Colors.grey)),
-                    Text(widget.country, style: const TextStyle(color: Colors.grey)),
+                    Row(
+                      children: [
+                        const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
+                        const SizedBox(width: 4),
+                        Text(widget.deadline,
+                            style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on, size: 16, color: Colors.grey),
+                        const SizedBox(width: 4),
+                        Text(widget.country,
+                            style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                      ],
+                    ),
                   ],
                 ),
               ],
