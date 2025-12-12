@@ -12,24 +12,27 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
-
   late AnimationController _controller;
   late Animation<double> _fade;
   late Animation<Offset> _slide;
+  late Animation<double> _pulse;
 
   @override
   void initState() {
     super.initState();
 
+    // ---------------- Animation Controller ----------------
     _controller = AnimationController(
-      duration: const Duration(milliseconds: 15000),
+      duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
 
-    _fade = Tween<double>(begin: 0, end: 1).animate(
+    // ---------------- Fade Animation ----------------
+    _fade = Tween<double>(begin: 0.5, end: 1).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeIn),
     );
 
+    // ---------------- Slide Animation ----------------
     _slide = Tween<Offset>(
       begin: const Offset(0, 0.15),
       end: Offset.zero,
@@ -37,8 +40,21 @@ class _SplashScreenState extends State<SplashScreen>
       CurvedAnimation(parent: _controller, curve: Curves.easeOut),
     );
 
+    // ---------------- Pulse Animation ----------------
+    _pulse = Tween<double>(begin: 0.95, end: 1.05).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+
     _controller.forward();
 
+    // Repeat pulse indefinitely while screen is visible
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _controller.repeat(reverse: true);
+      }
+    });
+
+    // ---------------- Navigate after 3 seconds ----------------
     Timer(const Duration(seconds: 3), () {
       Navigator.pushReplacement(
         context,
@@ -65,25 +81,34 @@ class _SplashScreenState extends State<SplashScreen>
             opacity: _fade,
             child: SlideTransition(
               position: _slide,
-              child: Container(
-                width: 170,
-                height: 170,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white, // EXACT like your screenshot
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
+              child: ScaleTransition(
+                scale: _pulse,
+                child: Container(
+                  width: 170,
+                  height: 170,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.15),
+                        blurRadius: 20,
+                        spreadRadius: 1,
+                        offset: const Offset(0, 8),
+                      ),
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.1),
+                        blurRadius: 12,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(22),
+                  child: ClipOval(
+                    child: Image.asset(
+                      'assets/logo.jpeg',
+                      fit: BoxFit.cover,
                     ),
-                  ],
-                ),
-                padding: const EdgeInsets.all(22),
-                child: ClipOval(
-                  child: Image.asset(
-                    'assets/logo.jpeg',
-                    fit: BoxFit.cover, // makes logo perfectly round
                   ),
                 ),
               ),

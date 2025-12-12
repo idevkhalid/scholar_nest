@@ -1,7 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:shimmer/shimmer.dart';
 import '../providers/saved_provider.dart';
 import '../constants/colors.dart';
 
@@ -13,12 +12,16 @@ class SavedScholarshipsScreen extends StatelessWidget {
     final savedProvider = Provider.of<SavedProvider>(context);
     final savedList = savedProvider.savedList;
 
+    // 🔥 Smooth top padding to remove white line
+    final double topPadding = MediaQuery.of(context).padding.top;
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
           gradient: AppColors.backgroundGradient,
         ),
         child: SafeArea(
+          top: false,
           child: Column(
             children: [
               // ---------------- GLASS HEADER ----------------
@@ -30,15 +33,21 @@ class SavedScholarshipsScreen extends StatelessWidget {
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                    width: double.infinity,
+                    padding: EdgeInsets.only(
+                      top: topPadding + 15,
+                      bottom: 20,
+                      left: 20,
+                      right: 20,
+                    ),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.3), // glass effect
+                      color: AppColors.primary.withOpacity(0.3),
                       borderRadius: const BorderRadius.only(
                         bottomLeft: Radius.circular(30),
                         bottomRight: Radius.circular(30),
                       ),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.white.withOpacity(0.25),
                       ),
                     ),
                     child: Row(
@@ -48,21 +57,24 @@ class SavedScholarshipsScreen extends StatelessWidget {
                           icon: const Icon(Icons.arrow_back, color: Colors.white),
                         ),
                         const SizedBox(width: 10),
-                        const Text(
-                          "Saved Scholarships",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.bold,
+                        const Expanded(
+                          child: Text(
+                            "Saved Scholarships",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                        const Spacer(),
                         const Icon(Icons.bookmark, color: Colors.white, size: 28),
                       ],
                     ),
                   ),
                 ),
               ),
+
+              const SizedBox(height: 15),
 
               // ---------------- BODY ----------------
               Expanded(
@@ -77,7 +89,7 @@ class SavedScholarshipsScreen extends StatelessWidget {
                   ),
                 )
                     : ListView.builder(
-                  padding: const EdgeInsets.all(15),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   itemCount: savedList.length,
                   itemBuilder: (context, index) {
                     final item = savedList[index];
