@@ -50,10 +50,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          gradient: AppColors.backgroundGradient, // SplashScreen style
+          gradient: AppColors.backgroundGradient,
         ),
         child: SafeArea(
           child: GestureDetector(
@@ -69,43 +71,35 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                         children: [
                           const SizedBox(height: 40),
 
-                          // --- Circular Logo & App Name ---
-                          Center(
-                            child: Column(
-                              children: [
-                                CircleAvatar(
-                                  radius: 60,
-                                  backgroundColor: Colors.white,
-                                  child: ClipOval(
-                                    child: Image.asset(
-                                      'assets/logo.jpeg',
-                                      fit: BoxFit.cover,
-                                      width: 100,
-                                      height: 100,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  "Forgot Password",
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppColors.primary,
-                                  ),
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  "Enter your email to receive a verification code",
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: AppColors.textSecondary?.withOpacity(0.8),
-                                  ),
-                                ),
-                              ],
+                          // --- Circular Logo (Updated Professional Style) ---
+                          ClipOval(
+                            child: Image.asset(
+                              'assets/logo.png',
+                              width: width * 0.40,
+                              height: width * 0.40,
+                              fit: BoxFit.cover,
                             ),
                           ),
+
+                          const SizedBox(height: 16),
+                          Text(
+                            "Forgot Password",
+                            style: TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            "Enter your email to receive a verification code",
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: AppColors.textSecondary?.withOpacity(0.8),
+                            ),
+                          ),
+
                           const SizedBox(height: 40),
 
                           // --- Card Form ---
@@ -115,7 +109,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                               width: double.infinity,
                               padding: const EdgeInsets.all(25),
                               decoration: BoxDecoration(
-                                color: AppColors.cardBackground, // white card
+                                color: AppColors.cardBackground,
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
                                   BoxShadow(

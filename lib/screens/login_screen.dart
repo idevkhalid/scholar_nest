@@ -56,6 +56,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -69,24 +71,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   const SizedBox(height: 40),
 
-                  /// ROUND LOGO
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    padding: const EdgeInsets.all(20),
+                  /// ROUND LOGO (Updated style)
+                  ClipOval(
                     child: Image.asset(
-                      'assets/logo.jpeg',
-                      width: 80,
-                      height: 80,
+                      'assets/logo.png', // your logo
+                      width: width * 0.40,
+                      height: width * 0.40,
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -135,7 +125,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               obscureText: true),
                           const SizedBox(height: 20),
 
-                          /// SIGN IN BUTTON (gradient like Intro)
+                          /// SIGN IN BUTTON
                           SizedBox(
                             width: double.infinity,
                             height: 50,

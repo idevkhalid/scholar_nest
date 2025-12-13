@@ -77,6 +77,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -90,21 +92,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 children: [
                   const SizedBox(height: 40),
 
-                  // --- Circular Logo ---
-                  Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.cardBackground,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withOpacity(0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
+                  /// ROUND LOGO (Updated style)
+                  ClipOval(
+                    child: Image.asset(
+                      'assets/logo.png', // your logo
+                      width: width * 0.40,
+                      height: width * 0.40,
+                      fit: BoxFit.cover,
                     ),
-                    padding: const EdgeInsets.all(20),
-                    child: Image.asset('assets/logo.jpeg', width: 80, height: 80),
                   ),
 
                   const SizedBox(height: 20),
@@ -114,7 +109,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primary, // updated for SplashScreen consistency
+                      color: AppColors.primary,
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -136,7 +131,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.blue.withOpacity(0.2),
+                          color: Colors.grey.withOpacity(0.2),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
@@ -228,7 +223,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         const TextSpan(text: "Already have an account? "),
                         TextSpan(
                           text: "Sign in",
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: AppColors.primary,
                             fontWeight: FontWeight.w600,
                           ),
@@ -278,7 +273,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 2),
+          borderSide: BorderSide(color: AppColors.primary, width: 2),
         ),
       ),
       validator: (v) {

@@ -11,6 +11,7 @@ class IntroScreen extends StatefulWidget {
 
 class _IntroScreenState extends State<IntroScreen>
     with SingleTickerProviderStateMixin {
+
   late AnimationController _controller;
   late Animation<double> _fade;
   late Animation<Offset> _slide;
@@ -21,15 +22,16 @@ class _IntroScreenState extends State<IntroScreen>
 
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900),
+      duration: const Duration(milliseconds: 600),
     );
 
-    _fade = Tween<double>(begin: 0, end: 1).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeIn),
+    _fade = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeIn,
     );
 
     _slide = Tween<Offset>(
-      begin: const Offset(0, 0.10),
+      begin: const Offset(0, 0.05),
       end: Offset.zero,
     ).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOut),
@@ -46,78 +48,87 @@ class _IntroScreenState extends State<IntroScreen>
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
-          gradient: AppColors.backgroundGradient, // remove const
+          gradient: AppColors.backgroundGradient,
         ),
         child: FadeTransition(
           opacity: _fade,
           child: SlideTransition(
             position: _slide,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 28),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  /// ROUND LOGO
-                  Container(
-                    width: 150,
-                    height: 150,
-                    decoration: const BoxDecoration(
-                      shape: BoxShape.circle,
-                      image: DecorationImage(
-                        image: AssetImage('assets/logo.jpeg'),
-                        fit: BoxFit.cover,
-                      ),
+
+                  // --------------------------------------------------
+                  // ✅ BIG ROUND LOGO
+                  // --------------------------------------------------
+                  ClipOval(
+                    child: Image.asset(
+                      'assets/logo.png', // your logo
+                      width: width * 0.50, // bigger logo
+                      height: width * 0.50, // make height same as width
+                      fit: BoxFit.cover, // cover to fill circle
                     ),
                   ),
 
-                  const SizedBox(height: 26),
+                  const SizedBox(height: 32),
 
-                  /// TITLE
+                  // --------------------------------------------------
+                  // TITLE
+                  // --------------------------------------------------
                   Text(
                     'Scholar Nest',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: 'Literata',
-                      fontSize: 36,
+                      fontSize: 34,
                       fontWeight: FontWeight.w900,
                       color: AppColors.primary,
-                      letterSpacing: 1.2,
+                      letterSpacing: 1.1,
                     ),
                   ),
 
                   const SizedBox(height: 10),
 
-                  /// SUBTITLE
+                  // --------------------------------------------------
+                  // SUBTITLE
+                  // --------------------------------------------------
                   Text(
                     'Learn • Grow • Achieve',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontFamily: 'Literata',
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.primary.withOpacity(0.85),
                     ),
                   ),
 
                   const SizedBox(height: 18),
 
-                  /// DESCRIPTION
+                  // --------------------------------------------------
+                  // DESCRIPTION
+                  // --------------------------------------------------
                   Text(
                     'Discover thousands of scholarships tailored to your profile and academic goals.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: 15.5,
                       color: AppColors.textSecondary,
                       height: 1.4,
                     ),
                   ),
 
-                  const SizedBox(height: 50),
+                  const SizedBox(height: 46),
 
-                  /// NEXT BUTTON (matches login/register)
+                  // --------------------------------------------------
+                  // NEXT BUTTON
+                  // --------------------------------------------------
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
@@ -131,12 +142,14 @@ class _IntroScreenState extends State<IntroScreen>
                       onPressed: () {
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (_) => const HomeScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => const HomeScreen(),
+                          ),
                         );
                       },
-                      child: Row(
+                      child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: const [
+                        children: [
                           Text(
                             'NEXT',
                             style: TextStyle(
@@ -145,7 +158,7 @@ class _IntroScreenState extends State<IntroScreen>
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                          SizedBox(width: 10),
+                          SizedBox(width: 8),
                           Icon(Icons.arrow_forward, color: Colors.white),
                         ],
                       ),

@@ -21,41 +21,34 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
 
-    // ---------------- Animation Controller ----------------
     _controller = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
     );
 
-    // ---------------- Fade Animation ----------------
-    _fade = Tween<double>(begin: 0.5, end: 1).animate(
+    _fade = Tween<double>(begin: 0.6, end: 1).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeIn),
     );
 
-    // ---------------- Slide Animation ----------------
     _slide = Tween<Offset>(
-      begin: const Offset(0, 0.15),
+      begin: const Offset(0, 0.12),
       end: Offset.zero,
     ).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOut),
     );
 
-    // ---------------- Pulse Animation ----------------
-    _pulse = Tween<double>(begin: 0.95, end: 1.05).animate(
+    _pulse = Tween<double>(begin: 0.97, end: 1.03).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
 
     _controller.forward();
-
-    // Repeat pulse indefinitely while screen is visible
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         _controller.repeat(reverse: true);
       }
     });
 
-    // ---------------- Navigate after 3 seconds ----------------
-    Timer(const Duration(seconds: 3), () {
+    Timer(const Duration(seconds: 6), () {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const IntroScreen()),
@@ -71,6 +64,8 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
@@ -84,29 +79,21 @@ class _SplashScreenState extends State<SplashScreen>
               child: ScaleTransition(
                 scale: _pulse,
                 child: Container(
-                  width: 170,
-                  height: 170,
+                  width: width * 0.50,
+                  height: width * 0.50,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white,
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withOpacity(0.15),
-                        blurRadius: 20,
-                        spreadRadius: 1,
+                        blurRadius: 15,
                         offset: const Offset(0, 8),
-                      ),
-                      BoxShadow(
-                        color: Colors.white.withOpacity(0.1),
-                        blurRadius: 12,
-                        spreadRadius: 1,
                       ),
                     ],
                   ),
-                  padding: const EdgeInsets.all(22),
                   child: ClipOval(
                     child: Image.asset(
-                      'assets/logo.jpeg',
+                      'assets/logo.png', // your logo
                       fit: BoxFit.cover,
                     ),
                   ),
