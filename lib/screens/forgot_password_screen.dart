@@ -74,7 +74,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                           // --- Circular Logo (Updated Professional Style) ---
                           ClipOval(
                             child: Image.asset(
-                              'assets/logo.png',
+                              'assets/logo.jpeg',
                               width: width * 0.40,
                               height: width * 0.40,
                               fit: BoxFit.cover,

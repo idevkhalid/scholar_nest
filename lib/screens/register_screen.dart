@@ -95,7 +95,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   /// ROUND LOGO (Updated style)
                   ClipOval(
                     child: Image.asset(
-                      'assets/logo.png', // your logo
+                      'assets/logo.jpeg', // your logo
                       width: width * 0.40,
                       height: width * 0.40,
                       fit: BoxFit.cover,

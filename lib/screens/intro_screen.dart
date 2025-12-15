@@ -70,7 +70,7 @@ class _IntroScreenState extends State<IntroScreen>
                   // --------------------------------------------------
                   ClipOval(
                     child: Image.asset(
-                      'assets/logo.png', // your logo
+                      'assets/logo.jpeg', // your logo
                       width: width * 0.50, // bigger logo
                       height: width * 0.50, // make height same as width
                       fit: BoxFit.cover, // cover to fill circle

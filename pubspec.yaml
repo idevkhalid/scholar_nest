@@ -28,13 +28,10 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/logo2.png
-    - assets/logo3.png
-    - assets/logo4.png
-    - assets/logo.png
+
+
     - assets/logo.jpeg
-    - assets/logo1.jpeg
-    - assets/logo.mp4
+
     - assets/images/  # Folder for other images
 
   fonts:

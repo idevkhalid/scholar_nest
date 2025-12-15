@@ -115,7 +115,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                           backgroundColor: Colors.white,
                           child: ClipOval(
                             child: Image.asset(
-                              'assets/logo.png',
+                              'assets/logo.jpeg',
                               fit: BoxFit.cover,
                               width: 80,
                               height: 80,
