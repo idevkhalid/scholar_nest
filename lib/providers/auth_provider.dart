@@ -93,8 +93,37 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // Logout
+  // Logout from current device
   Future<void> logout() async {
+    if (_token != null) {
+      try {
+        await ApiService.logout(_token!); // Call API to logout
+      } catch (e) {
+        debugPrint("Logout API error: $e");
+      }
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('token');
+    await prefs.remove('user');
+
+    _isLoggedIn = false;
+    _userName = "";
+    _email = "";
+    _token = null;
+    notifyListeners();
+  }
+
+  // Logout from all devices
+  Future<void> logoutAllDevices() async {
+    if (_token != null) {
+      try {
+        await ApiService.logoutAll(_token!); // Call API to logout from all devices
+      } catch (e) {
+        debugPrint("LogoutAll API error: $e");
+      }
+    }
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('token');
     await prefs.remove('user');

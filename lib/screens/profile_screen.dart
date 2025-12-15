@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../constants/colors.dart';
 import 'SavedScholarshipsScreen.dart';
+import 'delete_account_screen.dart';
 import 'login_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -24,7 +25,6 @@ class ProfileScreen extends StatelessWidget {
     final authProvider = Provider.of<AuthProvider>(context);
     final initials = _getInitials(authProvider.userName);
 
-    // 🔥 This gives smooth top padding without white line
     final double topPadding = MediaQuery.of(context).padding.top;
 
     return Scaffold(
@@ -32,19 +32,13 @@ class ProfileScreen extends StatelessWidget {
         decoration: BoxDecoration(
           gradient: AppColors.backgroundGradient,
         ),
-
-        // 🔥 Removes the white/blank line at the top
         child: SafeArea(
           top: false,
-
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
             child: Column(
               children: [
-
-                // ----------------------------------------------------------
-                // 🔥🔥 Premium Glass Header With Smooth Top Padding
-                // ----------------------------------------------------------
+                // ------------------ GLASS HEADER ------------------
                 ClipRRect(
                   borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(30),
@@ -54,14 +48,12 @@ class ProfileScreen extends StatelessWidget {
                     filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
                     child: Container(
                       width: double.infinity,
-
                       padding: EdgeInsets.only(
-                        top: topPadding + 15,  // 🔥 smooth top start
+                        top: topPadding + 15,
                         bottom: 20,
                         left: 20,
                         right: 20,
                       ),
-
                       decoration: BoxDecoration(
                         color: AppColors.primary.withOpacity(0.3),
                         borderRadius: const BorderRadius.only(
@@ -72,7 +64,6 @@ class ProfileScreen extends StatelessWidget {
                           color: Colors.white.withOpacity(0.25),
                         ),
                       ),
-
                       child: Row(
                         children: [
                           CircleAvatar(
@@ -87,9 +78,7 @@ class ProfileScreen extends StatelessWidget {
                               ),
                             ),
                           ),
-
                           const SizedBox(width: 16),
-
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -104,9 +93,7 @@ class ProfileScreen extends StatelessWidget {
                                     color: Colors.white,
                                   ),
                                 ),
-
                                 const SizedBox(height: 4),
-
                                 Text(
                                   authProvider.email.isNotEmpty
                                       ? authProvider.email
@@ -127,9 +114,7 @@ class ProfileScreen extends StatelessWidget {
 
                 const SizedBox(height: 25),
 
-                // ----------------------------------------------------------
-                // Options Card
-                // ----------------------------------------------------------
+                // ------------------ OPTIONS CARD ------------------
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Container(
@@ -147,33 +132,33 @@ class ProfileScreen extends StatelessWidget {
                     child: Column(
                       children: [
                         _profileTile(Icons.person, "Profile", () {}),
-
                         _divider(),
-
                         _profileTile(Icons.bookmark, "Saved Scholarships", () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => const SavedScholarshipsScreen(),
-                            ),
+                                builder: (_) =>
+                                const SavedScholarshipsScreen()),
                           );
                         }),
-
                         _divider(),
-
-                        _profileTile(Icons.support_agent, "Contact / Support", () {}),
-
+                        _profileTile(Icons.support_agent, "Contact / Support",
+                                () {}),
                         _divider(),
-
-                        _profileTile(Icons.delete_outline, "Deactivate Account", () {}),
-
+                        _profileTile(Icons.delete_outline, "Delete Account",
+                                () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const DeleteAccountScreen(),
+                                    ),
+                                  );
+                                }),
                         _divider(),
-
                         _profileTile(Icons.info_outline, "About Us", () {}),
-
                         _divider(),
-
-                        _profileTile(Icons.lock_outline, "Privacy & Security", () {}),
+                        _profileTile(Icons.lock_outline, "Privacy & Security",
+                                () {}),
                       ],
                     ),
                   ),
@@ -181,40 +166,74 @@ class ProfileScreen extends StatelessWidget {
 
                 const SizedBox(height: 30),
 
-                // ----------------------------------------------------------
-                // Logout/Login Button
-                // ----------------------------------------------------------
+                // ------------------ LOGOUT BUTTON ------------------
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        if (authProvider.isLoggedIn) authProvider.logout();
-
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                              builder: (_) => const LoginScreen()),
-                        );
-                      },
-                      icon: Icon(
-                        authProvider.isLoggedIn ? Icons.logout : Icons.login,
-                        color: Colors.white,
-                      ),
-                      label: Text(
-                        authProvider.isLoggedIn ? "Logout" : "Login",
-                        style: const TextStyle(
-                            fontSize: 16, color: Colors.white),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
+                  child: Column(
+                    children: [
+                      // Logout from current device
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: authProvider.isLoggedIn
+                              ? () async {
+                            await authProvider.logout();
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                  const LoginScreen()),
+                            );
+                          }
+                              : null,
+                          icon: const Icon(Icons.logout, color: Colors.white),
+                          label: const Text(
+                            "Logout",
+                            style: TextStyle(fontSize: 16, color: Colors.white),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                          ),
                         ),
                       ),
-                    ),
+
+                      const SizedBox(height: 15),
+
+                      // Logout from all devices
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: authProvider.isLoggedIn
+                              ? () async {
+                            await authProvider.logoutAllDevices();
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (_) =>
+                                  const LoginScreen()),
+                            );
+                          }
+                              : null,
+                          icon: const Icon(Icons.logout_outlined,
+                              color: Colors.white),
+                          label: const Text(
+                            "Logout All Devices",
+                            style: TextStyle(fontSize: 16, color: Colors.white),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.redAccent,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
 
@@ -242,7 +261,8 @@ class ProfileScreen extends StatelessWidget {
         title,
         style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
       ),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+      trailing:
+      const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
     );
