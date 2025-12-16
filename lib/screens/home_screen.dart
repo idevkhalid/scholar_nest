@@ -9,7 +9,8 @@ import '../constants/colors.dart';
 import 'login_screen.dart';
 import 'profile_screen.dart';
 import 'knowledge_base_screen.dart';
-
+// 1. IMPORT THE DETAILS SCREEN
+import 'scholarship_details_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -54,12 +55,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final savedProvider = Provider.of<SavedProvider>(context);
     final authProvider = Provider.of<AuthProvider>(context);
 
-    final screens  = [
+    final screens = [
       _buildHomeTab(filterProvider, savedProvider, authProvider),
-      const KnowledgeBaseScreen(), // 👈 real screen here
+      const KnowledgeBaseScreen(),
       authProvider.isLoggedIn ? const ProfileScreen() : const LoginScreen(),
     ];
-
 
     return Scaffold(
       body: Container(
@@ -83,7 +83,7 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.menu_book),
-            label: 'Knowledge_BAse',
+            label: 'Knowledge Base',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person),
@@ -214,6 +214,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   deadline: item['deadline']!,
                   country: item['country']!,
                   isSaved: isSaved,
+                  // 2. PASS THE NAVIGATION FUNCTION HERE
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ScholarshipDetailsPage(),
+                      ),
+                    );
+                  },
                   onSave: () {
                     if (!authProvider.isLoggedIn) {
                       Navigator.push(
@@ -292,6 +301,8 @@ class FilterChipDropdown extends StatelessWidget {
 class ModernScholarshipCard extends StatefulWidget {
   final String title, institution, badge, deadline, country;
   final VoidCallback onSave;
+  // 3. ADD ONTAP PARAMETER
+  final VoidCallback onTap;
   final bool isSaved;
 
   const ModernScholarshipCard({
@@ -302,6 +313,7 @@ class ModernScholarshipCard extends StatefulWidget {
     required this.deadline,
     required this.country,
     required this.onSave,
+    required this.onTap, // Add to constructor
     required this.isSaved,
   });
 
@@ -315,6 +327,8 @@ class _ModernScholarshipCardState extends State<ModernScholarshipCard> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      // 4. USE THE ONTAP FUNCTION
+      onTap: widget.onTap,
       onTapDown: (_) => setState(() => _scale = 0.97),
       onTapUp: (_) => setState(() => _scale = 1.0),
       onTapCancel: () => setState(() => _scale = 1.0),
