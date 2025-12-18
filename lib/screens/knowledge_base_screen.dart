@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../constants/colors.dart';
+import 'professor_list_screen.dart';
 
 class KnowledgeBaseScreen extends StatelessWidget {
   const KnowledgeBaseScreen({super.key});
@@ -84,10 +85,15 @@ class KnowledgeBaseScreen extends StatelessWidget {
                       icon: Icons.people_outline,
                       title: "Professor List",
                       description: "Find professors who can guide and support you.",
-                      onTap: () {
-                        // TODO: Navigate to professor list
-                      },
-                    ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>  ProfessorListScreen(),
+                            ),
+                          );
+                        },
+                      ),
                   ],
                 ),
               ),
