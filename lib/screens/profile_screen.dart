@@ -1,9 +1,12 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../providers/auth_provider.dart';
 import '../constants/colors.dart';
 import 'SavedScholarshipsScreen.dart';
+import 'about_us_screen.dart';
+import 'contact_support_screen.dart';
 import 'delete_account_screen.dart';
 import 'login_screen.dart';
 
@@ -24,7 +27,6 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
     final initials = _getInitials(authProvider.userName);
-
     final double topPadding = MediaQuery.of(context).padding.top;
 
     return Scaffold(
@@ -38,7 +40,7 @@ class ProfileScreen extends StatelessWidget {
             physics: const BouncingScrollPhysics(),
             child: Column(
               children: [
-                // ------------------ GLASS HEADER ------------------
+                // ================= HEADER =================
                 ClipRRect(
                   borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(30),
@@ -114,7 +116,7 @@ class ProfileScreen extends StatelessWidget {
 
                 const SizedBox(height: 25),
 
-                // ------------------ OPTIONS CARD ------------------
+                // ================= OPTIONS CARD =================
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Container(
@@ -132,33 +134,60 @@ class ProfileScreen extends StatelessWidget {
                     child: Column(
                       children: [
                         _profileTile(Icons.person, "Profile", () {}),
+
                         _divider(),
+
                         _profileTile(Icons.bookmark, "Saved Scholarships", () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                                builder: (_) =>
-                                const SavedScholarshipsScreen()),
+                              builder: (_) =>
+                              const SavedScholarshipsScreen(),
+                            ),
                           );
                         }),
+
                         _divider(),
-                        _profileTile(Icons.support_agent, "Contact / Support",
-                                () {}),
+
+                        _profileTile(
+                            Icons.support_agent, "Contact / Support", () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                              const ContactSupportScreen(),
+                            ),
+                          );
+                        }),
+
                         _divider(),
-                        _profileTile(Icons.delete_outline, "Delete Account",
-                                () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const DeleteAccountScreen(),
-                                    ),
-                                  );
-                                }),
+
+                        _profileTile(
+                            Icons.delete_outline, "Delete Account", () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                              const DeleteAccountScreen(),
+                            ),
+                          );
+                        }),
+
                         _divider(),
-                        _profileTile(Icons.info_outline, "About Us", () {}),
+
+                        _profileTile(Icons.info_outline, "About Us", () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const AboutUsScreen(),
+                            ),
+                          );
+                        }),
+
                         _divider(),
-                        _profileTile(Icons.lock_outline, "Privacy & Security",
-                                () {}),
+
+                        _profileTile(
+                            Icons.lock_outline, "Privacy & Security", () {}),
                       ],
                     ),
                   ),
@@ -166,12 +195,12 @@ class ProfileScreen extends StatelessWidget {
 
                 const SizedBox(height: 30),
 
-                // ------------------ LOGOUT BUTTON ------------------
+                // ================= LOGOUT BUTTONS =================
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     children: [
-                      // Logout from current device
+                      // Logout
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
@@ -181,19 +210,23 @@ class ProfileScreen extends StatelessWidget {
                             Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) =>
-                                  const LoginScreen()),
+                                builder: (_) =>
+                                const LoginScreen(),
+                              ),
                             );
                           }
                               : null,
-                          icon: const Icon(Icons.logout, color: Colors.white),
+                          icon: const Icon(Icons.logout,
+                              color: Colors.white),
                           label: const Text(
                             "Logout",
-                            style: TextStyle(fontSize: 16, color: Colors.white),
+                            style: TextStyle(
+                                fontSize: 16, color: Colors.white),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primary,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(15),
                             ),
@@ -203,7 +236,7 @@ class ProfileScreen extends StatelessWidget {
 
                       const SizedBox(height: 15),
 
-                      // Logout from all devices
+                      // Logout all devices
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
@@ -213,8 +246,9 @@ class ProfileScreen extends StatelessWidget {
                             Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) =>
-                                  const LoginScreen()),
+                                builder: (_) =>
+                                const LoginScreen(),
+                              ),
                             );
                           }
                               : null,
@@ -222,11 +256,13 @@ class ProfileScreen extends StatelessWidget {
                               color: Colors.white),
                           label: const Text(
                             "Logout All Devices",
-                            style: TextStyle(fontSize: 16, color: Colors.white),
+                            style: TextStyle(
+                                fontSize: 16, color: Colors.white),
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.redAccent,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            padding: const EdgeInsets.symmetric(
+                                vertical: 14),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(15),
                             ),
@@ -246,8 +282,9 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  // ---------- Reusable Tile ----------
-  Widget _profileTile(IconData icon, String title, VoidCallback onTap) {
+  // ================= REUSABLE TILE =================
+  Widget _profileTile(
+      IconData icon, String title, VoidCallback onTap) {
     return ListTile(
       leading: Container(
         padding: const EdgeInsets.all(10),
@@ -259,12 +296,14 @@ class ProfileScreen extends StatelessWidget {
       ),
       title: Text(
         title,
-        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        style:
+        const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
       ),
-      trailing:
-      const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+      trailing: const Icon(Icons.arrow_forward_ios,
+          size: 16, color: Colors.grey),
       onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      contentPadding:
+      const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
     );
   }
 
