@@ -12,59 +12,66 @@ class AuthProvider with ChangeNotifier {
   bool get isLoggedIn => _isLoggedIn;
   String get userName => _userName;
   String get email => _email;
-  String? get token => _token;
+  String get userToken => _token ?? "";
 
   AuthProvider() {
     _loadUser();
   }
 
-  // Load saved user info and token
+  // BUG FIX: Added try-catch to prevent crashes on corrupted local data
   Future<void> _loadUser() async {
     final prefs = await SharedPreferences.getInstance();
     final savedToken = prefs.getString('token');
     final savedUser = prefs.getString('user');
 
     if (savedToken != null && savedUser != null) {
-      final userData = jsonDecode(savedUser);
-      _token = savedToken;
-      _userName = userData['name'] ?? "${userData['f_name']} ${userData['l_name']}";
-      _email = userData['email'] ?? "";
-      _isLoggedIn = true;
-      notifyListeners();
+      try {
+        final userData = jsonDecode(savedUser);
+        _token = savedToken;
+        _userName = userData['name'] ??
+            "${userData['f_name'] ?? ''} ${userData['l_name'] ?? ''}".trim();
+        _email = userData['email'] ?? "";
+        _isLoggedIn = true;
+        notifyListeners();
+      } catch (e) {
+        debugPrint("Error loading local user: $e");
+        await _clearLocalData();
+      }
     }
   }
 
-  // Save user info and token locally
+  // BUG FIX: Handled empty f_name/l_name to avoid "null null" strings
   Future<void> _saveUser(Map<String, dynamic> userData, String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('token', token);
     await prefs.setString('user', jsonEncode(userData));
 
     _token = token;
-    _userName = userData['name'] ?? "${userData['f_name']} ${userData['l_name']}";
+    _userName = userData['name'] ??
+        "${userData['f_name'] ?? ''} ${userData['l_name'] ?? ''}".trim();
+
+    if (_userName.isEmpty) _userName = "User"; // Fallback name
+
     _email = userData['email'] ?? "";
     _isLoggedIn = true;
     notifyListeners();
   }
 
-  // Login via API
   Future<bool> login(String email, String password) async {
     try {
       final response = await ApiService.loginUser(email, password);
 
-      if (response['status'] == 'success') {
+      if (response['status'] == 'success' || response['access_token'] != null) {
         await _saveUser(response['user'], response['access_token']);
-        return true; // Login successful
-      } else {
-        return false; // Login failed
+        return true;
       }
+      return false;
     } catch (e) {
       debugPrint("Login error: $e");
       return false;
     }
   }
 
-  // Register via API
   Future<bool> register({
     required String fName,
     required String lName,
@@ -81,49 +88,41 @@ class AuthProvider with ChangeNotifier {
         passwordConfirmation: passwordConfirmation,
       );
 
-      if (response['status'] == 'success') {
+      // BUG FIX: Checking both status and existence of token for robustness
+      if (response['status'] == 'success' || response['access_token'] != null) {
         await _saveUser(response['user'], response['access_token']);
-        return true; // Registration successful
-      } else {
-        return false; // Registration failed
+        return true;
       }
+      return false;
     } catch (e) {
       debugPrint("Register error: $e");
       return false;
     }
   }
 
-  // Logout from current device
   Future<void> logout() async {
     if (_token != null) {
       try {
-        await ApiService.logout(_token!); // Call API to logout
+        await ApiService.logout(_token!);
       } catch (e) {
         debugPrint("Logout API error: $e");
       }
     }
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('token');
-    await prefs.remove('user');
-
-    _isLoggedIn = false;
-    _userName = "";
-    _email = "";
-    _token = null;
-    notifyListeners();
+    await _clearLocalData();
   }
 
-  // Logout from all devices
   Future<void> logoutAllDevices() async {
     if (_token != null) {
       try {
-        await ApiService.logoutAll(_token!); // Call API to logout from all devices
+        await ApiService.logoutAll(_token!);
       } catch (e) {
         debugPrint("LogoutAll API error: $e");
       }
     }
+    await _clearLocalData();
+  }
 
+  Future<void> _clearLocalData() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('token');
     await prefs.remove('user');

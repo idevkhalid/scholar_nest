@@ -1,19 +1,38 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 
-class ConsultantProfileScreen extends StatelessWidget {
-  const ConsultantProfileScreen({super.key});
+class ConsultantProfileScreen extends StatefulWidget {
+  final int consultantId;
+
+  const ConsultantProfileScreen({
+    super.key,
+    required this.consultantId,
+  });
+
+  @override
+  State<ConsultantProfileScreen> createState() =>
+      _ConsultantProfileScreenState();
+}
+
+class _ConsultantProfileScreenState extends State<ConsultantProfileScreen> {
+  late Future<Map<String, dynamic>> _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = ApiService.getConsultantDetails(widget.consultantId);
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Using the same gradient style as your other screens
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Color(0x9977A9FF), // Light Blue Top
-            Colors.white,      // White Bottom
+            Color(0x9977A9FF),
+            Colors.white,
           ],
         ),
       ),
@@ -27,138 +46,147 @@ class ConsultantProfileScreen extends StatelessWidget {
             onPressed: () => Navigator.pop(context),
           ),
         ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // --- 1. Circular Profile Image ---
-              Center(
-                child: Container(
-                  width: 130,
-                  height: 130,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    shape: BoxShape.circle,
+        body: FutureBuilder<Map<String, dynamic>>(
+          future: _future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            if (!snapshot.hasData ||
+                snapshot.data!["status"] == "error") {
+              return const Center(child: Text("Failed to load provider"));
+            }
+
+            final data = snapshot.data!["data"];
+            final user = data["user"];
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // --- 1. Circular Profile Image ---
+                  Center(
+                    child: CircleAvatar(
+                      radius: 65,
+                      backgroundImage: NetworkImage(user["avatar"]),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 30),
+                  const SizedBox(height: 30),
 
-              // --- 2. Header Name ---
-              const Text(
-                "Consulted Name",
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1B3C53),
-                ),
-              ),
-              const Divider(thickness: 1.5, color: Colors.black87),
-              const SizedBox(height: 20),
+                  // --- 2. Header Name ---
+                  Text(
+                    user["name"],
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF1B3C53),
+                    ),
+                  ),
+                  const Divider(thickness: 1.5, color: Colors.black87),
+                  const SizedBox(height: 20),
 
-              // --- 3. Info Section ---
-              _buildInfoRow("Experience:"),
-              _buildInfoRow("Phone Number:"),
-              _buildInfoRow("Alternative Phone Number:"),
-              _buildInfoRow("Company Name/Website Link:"),
+                  // --- 3. Info Section ---
+                  _buildInfoRow(
+                      "Experience: ${data["experience_years"]} years"),
+                  _buildInfoRow("Phone Number: ${user["phone"]}"),
+                  _buildInfoRow("Company/Website: ${data["website"] ?? "-"}"),
 
-              const SizedBox(height: 15),
-              const Text(
-                "Provider Address:",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  decoration: TextDecoration.underline,
-                  color: Color(0xFF1B3C53),
-                ),
-              ),
-              const SizedBox(height: 15),
+                  const SizedBox(height: 15),
+                  const Text(
+                    "Provider Address:",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      decoration: TextDecoration.underline,
+                      color: Color(0xFF1B3C53),
+                    ),
+                  ),
+                  const SizedBox(height: 15),
 
-              _buildInfoRow("State/City:"),
-              const Divider(color: Colors.black54),
-              const SizedBox(height: 10),
+                  _buildInfoRow("State/City: ${user["location"]}"),
+                  const Divider(color: Colors.black54),
+                  const SizedBox(height: 10),
 
-              _buildInfoRow("Qualification:"),
-              const Divider(color: Colors.black54),
-              const SizedBox(height: 10),
+                  _buildInfoRow("Qualification: ${data["education"]}"),
+                  const Divider(color: Colors.black54),
+                  const SizedBox(height: 10),
 
-              _buildInfoRow("Language:"),
-              const Text(
-                "What language can speak a provider:",
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: 15,
-                  color: Color(0xFF1B3C53),
-                ),
-              ),
-              const Divider(color: Colors.black54),
-              const SizedBox(height: 20),
+                  _buildInfoRow(
+                    "Language: ${(data["languages"] as List).join(", ")}",
+                  ),
+                  const Divider(color: Colors.black54),
+                  const SizedBox(height: 20),
 
-              // --- 4. Social Media Section ---
-              const Text(
-                "Social media Links:",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                  color: Color(0xFF1B3C53),
-                ),
-              ),
-              const SizedBox(height: 10),
-              _buildInfoRow("Facebook:"),
-              _buildInfoRow("you tube:"),
-              _buildInfoRow("Instagram:"),
-              const Divider(color: Colors.black54),
-              const SizedBox(height: 10),
+                  // --- 4. Social Media Section ---
+                  const Text(
+                    "Social media Links:",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Color(0xFF1B3C53),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  _buildInfoRow("LinkedIn: ${data["linkedin"] ?? "-"}"),
+                  _buildInfoRow("Twitter: ${data["twitter"] ?? "-"}"),
+                  const Divider(color: Colors.black54),
+                  const SizedBox(height: 10),
 
-              // --- 5. Rating Stars (Big Outlines) ---
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: const [
-                  Icon(Icons.star_border, size: 45, color: Colors.black),
-                  Icon(Icons.star_border, size: 45, color: Colors.black),
-                  Icon(Icons.star_border, size: 45, color: Colors.black),
-                  Icon(Icons.star_border, size: 45, color: Colors.black),
-                  Icon(Icons.star_border, size: 45, color: Colors.black),
+                  // --- 5. Rating Stars ---
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: List.generate(
+                      5,
+                          (index) => Icon(
+                        index < data["avg_rating"].round()
+                            ? Icons.star
+                            : Icons.star_border,
+                        size: 45,
+                        color: Colors.amber,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 30),
+
+                  // --- 6. Review Cards ---
+                  ...List.generate(
+                    data["recent_reviews"].length,
+                        (index) {
+                      final review = data["recent_reviews"][index];
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 20),
+                        child: _buildReviewCard(
+                          reviewerName: "User",
+                          timeAgo: review["created_at"],
+                          ratingScore: review["rating"].toString(),
+                          reviewText: review["comment"],
+                        ),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 20),
+                  const Text(
+                    "See more Reviews",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      decoration: TextDecoration.underline,
+                      color: Color(0xFF1B3C53),
+                    ),
+                  ),
+                  const SizedBox(height: 50),
                 ],
               ),
-              const SizedBox(height: 30),
-
-              // --- 6. Review Cards ---
-              _buildReviewCard(
-                reviewerName: "Here's reviewer Name:",
-                timeAgo: "5 months ago",
-                ratingScore: "5/4",
-                reviewText:
-                "User Reviews and Feedback Interface. User reviews online. Customer feedback review experience Rating concept",
-              ),
-              const SizedBox(height: 20),
-              _buildReviewCard(
-                reviewerName: "Here's reviewer Name:",
-                timeAgo: "9 months ago",
-                ratingScore: "5/5",
-                reviewText:
-                "A \"review box\" generally refers to a website element displaying customer feedback (testimonials, ratings) or a software.",
-              ),
-
-              const SizedBox(height: 20),
-              const Text(
-                "See more Reviews",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  decoration: TextDecoration.underline,
-                  color: Color(0xFF1B3C53),
-                ),
-              ),
-              const SizedBox(height: 50),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
   }
 
-  // --- Helper Widget for Rows like "Experience:" ---
+  // --- SAME helper (unchanged) ---
   Widget _buildInfoRow(String label) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 15.0),
@@ -172,13 +200,12 @@ class ConsultantProfileScreen extends StatelessWidget {
               color: Color(0xFF1B3C53),
             ),
           ),
-          // You can add value text here later if needed
         ],
       ),
     );
   }
 
-  // --- Helper Widget for the Review Card ---
+  // --- SAME review card (unchanged) ---
   Widget _buildReviewCard({
     required String reviewerName,
     required String timeAgo,
@@ -201,68 +228,26 @@ class ConsultantProfileScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header: Name + Time + Rating Number
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Expanded(
-                child: RichText(
-                  text: TextSpan(
-                    style: const TextStyle(color: Colors.black),
-                    children: [
-                      TextSpan(
-                        text: reviewerName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                          color: Color(0xFF1B3C53),
-                          decoration: TextDecoration.underline,
-                        ),
-                      ),
-                      TextSpan(
-                        text: " $timeAgo",
-                        style: const TextStyle(fontSize: 12, color: Colors.grey),
-                      ),
-                    ],
-                  ),
+              Text(
+                reviewerName,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1B3C53),
                 ),
               ),
-              Text(
-                ratingScore,
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
+              Text(ratingScore),
             ],
           ),
-          const SizedBox(height: 5),
-
-          // Yellow Stars
-          Row(
-            children: const [
-              Icon(Icons.star, color: Colors.yellow, size: 20),
-              Icon(Icons.star, color: Colors.yellow, size: 20),
-              Icon(Icons.star, color: Colors.yellow, size: 20),
-              Icon(Icons.star, color: Colors.yellow, size: 20),
-              Icon(Icons.star_border, color: Colors.yellow, size: 20),
-            ],
-          ),
-          const SizedBox(height: 10),
-
-          // Review Body
+          const SizedBox(height: 8),
+          Text(reviewText),
+          const SizedBox(height: 6),
           Text(
-            reviewText,
-            style: const TextStyle(fontSize: 14, height: 1.4),
+            timeAgo,
+            style: const TextStyle(fontSize: 12, color: Colors.grey),
           ),
-          const SizedBox(height: 10),
-
-          // Thumbs Up/Down
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: const [
-              Icon(Icons.thumb_up_alt_outlined, size: 20),
-              SizedBox(width: 15),
-              Icon(Icons.thumb_down_alt_outlined, size: 20),
-            ],
-          )
         ],
       ),
     );

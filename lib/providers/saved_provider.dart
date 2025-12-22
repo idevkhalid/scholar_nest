@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 
 class SavedProvider with ChangeNotifier {
   // Internal list of saved scholarships
-  final List<Map<String, String>> _savedScholarships = [];
+  final List<Map<String, dynamic>> _savedScholarships = [];
 
   // Loading state for async operations (optional)
   bool _isLoading = false;
 
   // ---------------- GETTERS ----------------
-  List<Map<String, String>> get savedList => _savedScholarships;
+  List<Map<String, dynamic>> get savedList => _savedScholarships;
   bool get isLoading => _isLoading;
 
   // ---------------- SETTERS ----------------
@@ -20,9 +20,9 @@ class SavedProvider with ChangeNotifier {
   // ---------------- METHODS ----------------
 
   /// Toggle save/unsave a scholarship
-  void toggleSave(Map<String, String> scholarship) {
+  void toggleSave(Map<String, dynamic> scholarship) {
     if (isSaved(scholarship)) {
-      _savedScholarships.removeWhere((item) => item['title'] == scholarship['title']);
+      _savedScholarships.removeWhere((item) => item['id'] == scholarship['id']);
     } else {
       _savedScholarships.add(scholarship);
     }
@@ -30,13 +30,13 @@ class SavedProvider with ChangeNotifier {
   }
 
   /// Check if a scholarship is already saved
-  bool isSaved(Map<String, String> scholarship) {
-    return _savedScholarships.any((item) => item['title'] == scholarship['title']);
+  bool isSaved(Map<String, dynamic> scholarship) {
+    return _savedScholarships.any((item) => item['id'] == scholarship['id']);
   }
 
   /// Remove a scholarship directly (useful for SavedScholarshipsScreen)
-  void remove(Map<String, String> scholarship) {
-    _savedScholarships.removeWhere((item) => item['title'] == scholarship['title']);
+  void remove(Map<String, dynamic> scholarship) {
+    _savedScholarships.removeWhere((item) => item['id'] == scholarship['id']);
     notifyListeners();
   }
 

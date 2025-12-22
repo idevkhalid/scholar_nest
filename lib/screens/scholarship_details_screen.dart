@@ -1,8 +1,68 @@
 import 'package:flutter/material.dart';
-import 'provider.dart'; // Ensure this matches your file name
+import 'provider.dart'; // Matches your local file name
+import '../services/api_service.dart'; // Ensure path to ApiService is correct
+import '/screens/provider.dart'; // Ensure this import exists
 
-class ScholarshipDetailsPage extends StatelessWidget {
-  const ScholarshipDetailsPage({super.key});
+class ScholarshipDetailsPage extends StatefulWidget {
+  final int scholarshipId;
+
+  const ScholarshipDetailsPage({super.key, required this.scholarshipId});
+
+  @override
+  State<ScholarshipDetailsPage> createState() => _ScholarshipDetailsPageState();
+}
+
+class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
+  Map<String, dynamic>? scholarshipData;
+  bool isLoading = true;
+  String? errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDetails();
+  }
+
+  Future<void> _fetchDetails() async {
+    final response = await ApiService.getScholarshipDetails(widget.scholarshipId);
+
+    if (mounted) {
+      setState(() {
+        if (response['status'] == 'success') {
+          scholarshipData = response['data'];
+        } else {
+          // --- DUMMY FALLBACK FOR DETAIL PAGE ---
+          // If API fails (because DB is empty), use this mock data
+          scholarshipData = {
+            "title": "Global Excellence Scholarship",
+            "university": "Harvard University",
+            "country": "USA",
+            "category": "Merit-based",
+            "degree_level": "Master's Degree",
+            "deadline": "Dec 20, 2025",
+            "amount": "45,000",
+            "currency": "USD",
+            "description": "This is a prestigious scholarship designed for international students who demonstrate exceptional academic achievement and leadership potential. It covers tuition and living expenses.",
+            "detailed_description": "Includes full tuition waiver, monthly stipend of \$2,000, and health insurance.",
+            "eligibility_criteria": [
+              "Minimum GPA of 3.8",
+              "Proven leadership experience",
+              "International student status",
+              "Proficiency in English (IELTS 7.5+)"
+            ],
+            "consultant": {
+              "id": 1,
+              "user": {
+                "avatar": "https://i.pravatar.cc/150?u=1",
+                "name": "Dr. Sarah Johnson"
+              }
+            }
+          };
+        }
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -30,7 +90,11 @@ class ScholarshipDetailsPage extends StatelessWidget {
             ),
           ),
         ),
-        body: Column(
+        body: isLoading
+            ? const Center(child: CircularProgressIndicator(color: ScreenColors.primary))
+            : errorMessage != null
+            ? Center(child: Text(errorMessage!, style: const TextStyle(color: Colors.red)))
+            : Column(
           children: [
             Expanded(
               child: SingleChildScrollView(
@@ -45,40 +109,39 @@ class ScholarshipDetailsPage extends StatelessWidget {
                       title: "Scholarship's benefits",
                       initiallyExpanded: true,
                       children: [
-                        _buildBulletPoint("Monthly Allowance over \$1200"),
-                        _buildBulletPoint("A round trip plane ticket"),
-                        _buildBulletPoint("Health insurance"),
-                        _buildBulletPoint("Cultural activities"),
+                        _buildBulletPoint("Amount: ${scholarshipData?['amount'] ?? 'N/A'} ${scholarshipData?['currency'] ?? ''}"),
+                        if (scholarshipData?['detailed_description'] != null)
+                          _buildBulletPoint(scholarshipData!['detailed_description']),
                       ],
                     ),
                     const SizedBox(height: 12),
 
-                    // --- UPDATED SECTION START ---
                     _buildDropdownCard(
                       title: "Scholarship Provider",
-                      // Removed onTitleTap from here
                       children: [
                         Padding(
                           padding: const EdgeInsets.only(left: 16, bottom: 10),
                           child: Align(
                             alignment: Alignment.centerLeft,
                             child: GestureDetector(
-                              // Put the click action here
                               onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                    const ConsultantProfileScreen(),
-                                  ),
-                                );
+                                if (scholarshipData?['consultant'] != null) {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ConsultantProfileScreen(
+                                        consultantId: scholarshipData!['consultant']['id'],
+                                      ),
+                                    ),
+                                  );
+                                }
                               },
-                              child: const Text(
-                                "EDHEC Business School",
-                                style: TextStyle(
+                              child: Text(
+                                scholarshipData?['university'] ?? "Not Specified",
+                                style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: ScreenColors.primary,
-                                  decoration: TextDecoration.underline, // Visual cue
+                                  decoration: TextDecoration.underline,
                                   decorationColor: ScreenColors.primary,
                                 ),
                               ),
@@ -87,8 +150,6 @@ class ScholarshipDetailsPage extends StatelessWidget {
                         )
                       ],
                     ),
-                    // --- UPDATED SECTION END ---
-
                     const SizedBox(height: 16),
                     _buildEligibilityCard(),
                     const SizedBox(height: 20),
@@ -125,14 +186,14 @@ class ScholarshipDetailsPage extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                _LabelText(text: "Study in"),
-                SizedBox(height: 8),
-                _LabelText(text: "Type"),
-                SizedBox(height: 8),
-                _LabelText(text: "Degree"),
-                SizedBox(height: 8),
-                _LabelText(text: "Deadline"),
+              children: [
+                _LabelText(text: "Study in: ${scholarshipData?['country'] ?? 'N/A'}"),
+                const SizedBox(height: 8),
+                _LabelText(text: "Type: ${scholarshipData?['category'] ?? 'N/A'}"),
+                const SizedBox(height: 8),
+                _LabelText(text: "Degree: ${scholarshipData?['degree_level'] ?? 'N/A'}"),
+                const SizedBox(height: 8),
+                _LabelText(text: "Deadline: ${scholarshipData?['deadline'] ?? 'N/A'}"),
               ],
             ),
           ),
@@ -149,7 +210,16 @@ class ScholarshipDetailsPage extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.grey.shade300,
                   shape: BoxShape.circle,
+                  image: scholarshipData?['consultant']?['user']?['avatar'] != null
+                      ? DecorationImage(
+                    image: NetworkImage(scholarshipData!['consultant']['user']['avatar']),
+                    fit: BoxFit.cover,
+                  )
+                      : null,
                 ),
+                child: scholarshipData?['consultant']?['user']?['avatar'] == null
+                    ? const Icon(Icons.person, color: Colors.white)
+                    : null,
               ),
             ],
           )
@@ -168,8 +238,8 @@ class ScholarshipDetailsPage extends StatelessWidget {
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Text(
+        children: [
+          const Text(
             "Scholarship's Description",
             style: TextStyle(
               fontFamily: 'serif',
@@ -180,17 +250,16 @@ class ScholarshipDetailsPage extends StatelessWidget {
               decorationColor: Color(0xFFB0C4DE),
             ),
           ),
-          SizedBox(height: 10),
+          const SizedBox(height: 10),
           Text(
-            "EDHEC offers merit- and social-background-based scholarships\ndepending on programme and level.\n\nMerit / Excellence Scholarships: For strong academic profiles.\nFor example, in Master's programmes there's an \"Academic Excellence Scholarship\" that can provide up to 50% tuition fee reduction.",
-            style: TextStyle(fontSize: 13, height: 1.4),
+            scholarshipData?['description'] ?? "No description provided.",
+            style: const TextStyle(fontSize: 13, height: 1.4),
           ),
         ],
       ),
     );
   }
 
-  // Restored original _buildDropdownCard since we handle tap inside children now
   Widget _buildDropdownCard({
     required String title,
     required List<Widget> children,
@@ -253,32 +322,6 @@ class ScholarshipDetailsPage extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 20),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    _CriteriaItem(label: "GPA", value: "3.8"),
-                    SizedBox(height: 15),
-                    _CriteriaItem(label: "Grade", value: "Not Specified"),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: const [
-                    _CriteriaItem(label: "Gender", value: "Any"),
-                    SizedBox(height: 15),
-                    _CriteriaItem(label: "Work Experince", value: "Not Specified"),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
           const Text(
             "Requirement Detailed",
             style: TextStyle(
@@ -288,9 +331,13 @@ class ScholarshipDetailsPage extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          _buildBulletPoint("Not Specified"),
-          _buildBulletPoint("Bachelor's Degree"),
-          _buildBulletPoint("Excellent academic record"),
+          // Using eligibility_criteria list from API
+          if (scholarshipData?['eligibility_criteria'] != null)
+            ...(scholarshipData!['eligibility_criteria'] as List).map((item) {
+              return _buildBulletPoint(item.toString());
+            }).toList()
+          else
+            _buildBulletPoint("Not Specified"),
         ],
       ),
     );
@@ -320,18 +367,9 @@ class ScholarshipDetailsPage extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: ScreenColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 15),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
-              child: const Text(
-                "How to Apply",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'serif',
-                ),
-              ),
+              child: const Text("How to Apply", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'serif')),
             ),
           ),
           const SizedBox(width: 20),
@@ -341,18 +379,9 @@ class ScholarshipDetailsPage extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: ScreenColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 15),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
-              child: const Text(
-                "Apply",
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontFamily: 'serif',
-                ),
-              ),
+              child: const Text("Apply", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'serif')),
             ),
           ),
         ],
@@ -369,36 +398,7 @@ class _LabelText extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
-        fontWeight: FontWeight.bold,
-        fontSize: 14,
-        color: Colors.black,
-      ),
-    );
-  }
-}
-
-class _CriteriaItem extends StatelessWidget {
-  final String label;
-  final String value;
-  const _CriteriaItem({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            decoration: TextDecoration.underline,
-            color: ScreenColors.primary,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text("• $value", style: const TextStyle(fontWeight: FontWeight.w600)),
-      ],
+      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black),
     );
   }
 }
@@ -409,9 +409,6 @@ class ScreenColors {
   static const LinearGradient backgroundGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [
-      Color(0x9977A9FF),
-      Colors.white,
-    ],
+    colors: [Color(0x9977A9FF), Colors.white],
   );
 }

@@ -2,7 +2,10 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/saved_provider.dart';
+import '../providers/auth_provider.dart';
 import '../constants/colors.dart';
+import 'scholarship_details_screen.dart';
+import 'home_screen.dart'; // Make sure this is imported to access ModernScholarshipCard
 
 class SavedScholarshipsScreen extends StatelessWidget {
   const SavedScholarshipsScreen({super.key});
@@ -10,9 +13,9 @@ class SavedScholarshipsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final savedProvider = Provider.of<SavedProvider>(context);
+    final authProvider = Provider.of<AuthProvider>(context);
     final savedList = savedProvider.savedList;
 
-    // 🔥 Smooth top padding to remove white line
     final double topPadding = MediaQuery.of(context).padding.top;
 
     return Scaffold(
@@ -54,7 +57,7 @@ class SavedScholarshipsScreen extends StatelessWidget {
                       children: [
                         IconButton(
                           onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.arrow_back, color: Colors.white),
+                          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
                         ),
                         const SizedBox(width: 10),
                         const Expanded(
@@ -79,111 +82,53 @@ class SavedScholarshipsScreen extends StatelessWidget {
               // ---------------- BODY ----------------
               Expanded(
                 child: savedList.isEmpty
-                    ? const Center(
-                  child: Text(
-                    "No saved scholarships yet.",
-                    style: TextStyle(
-                      color: Colors.grey,
-                      fontSize: 16,
-                    ),
+                    ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.bookmark_border, size: 60, color: Colors.white.withOpacity(0.5)),
+                      const SizedBox(height: 10),
+                      const Text(
+                        "No saved scholarships yet.",
+                        style: TextStyle(color: Colors.white70, fontSize: 16),
+                      ),
+                    ],
                   ),
                 )
                     : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
                   itemCount: savedList.length,
                   itemBuilder: (context, index) {
                     final item = savedList[index];
-                    return _buildScholarshipCard(item, savedProvider);
+
+                    // Using the EXACT same widget from Home Screen
+                    return ModernScholarshipCard(
+                      title: item['title']?.toString() ?? 'No Title',
+                      institution: item['university']?.toString() ?? 'No Institution',
+                      badge: "${item['amount'] ?? ''} ${item['currency'] ?? ''}".trim(),
+                      deadline: item['deadline']?.toString() ?? 'No Deadline',
+                      country: item['country']?.toString() ?? 'N/A',
+                      isSaved: true, // It's in the saved screen, so it's always true
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ScholarshipDetailsPage(
+                              scholarshipId: int.parse(item['id'].toString()),
+                            ),
+                          ),
+                        );
+                      },
+                      onSave: () {
+                        // Tapping bookmark in saved screen removes it
+                        savedProvider.toggleSave(item);
+                      },
+                    );
                   },
                 ),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  // ---------------- SCHOLARSHIP CARD ----------------
-  Widget _buildScholarshipCard(Map<String, String> item, SavedProvider provider) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 10),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-      elevation: 3,
-      shadowColor: Colors.black.withOpacity(0.08),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Badge + Remove
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    gradient: const LinearGradient(
-                      colors: [AppColors.primary, AppColors.primary],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  child: Text(
-                    item['badge'] ?? '',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  onPressed: () => provider.remove(item),
-                  icon: const Icon(Icons.delete_outline, color: Colors.red),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            Text(
-              item['title'] ?? '',
-              style: const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              item['institution'] ?? '',
-              style: TextStyle(color: Colors.grey[700], fontSize: 14),
-            ),
-            const SizedBox(height: 10),
-
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.timer, size: 16, color: Colors.grey),
-                    const SizedBox(width: 5),
-                    Text(
-                      item['deadline'] ?? '',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                    ),
-                  ],
-                ),
-                Row(
-                  children: [
-                    const Icon(Icons.public, size: 16, color: Colors.grey),
-                    const SizedBox(width: 5),
-                    Text(
-                      item['country'] ?? '',
-                      style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ],
         ),
       ),
     );

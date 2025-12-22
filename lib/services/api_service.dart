@@ -2,7 +2,8 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = "https://scholarnest.codessol.com/api/auth";
+  static const String mainBaseUrl = "https://scholarnest.codessol.com/api";
+  static const String baseUrl = "$mainBaseUrl/auth";
 
   // -------------------------
   // REGISTER USER
@@ -166,8 +167,8 @@ class ApiService {
   }
 
   // -------------------------
-// RESET PASSWORD
-// -------------------------
+  // RESET PASSWORD
+  // -------------------------
   static Future<Map<String, dynamic>> resetPassword({
     required String email,
     required String otp,
@@ -203,8 +204,8 @@ class ApiService {
   }
 
   // -------------------------
-// REFRESH TOKEN
-// -------------------------
+  // REFRESH TOKEN
+  // -------------------------
   static Future<Map<String, dynamic>> refreshToken(String refreshToken) async {
     final url = Uri.parse('$baseUrl/refresh-token');
 
@@ -234,8 +235,8 @@ class ApiService {
   }
 
   // -------------------------
-// LOGOUT (CURRENT DEVICE)
-// -------------------------
+  // LOGOUT (CURRENT DEVICE)
+  // -------------------------
   static Future<Map<String, dynamic>> logout(String accessToken) async {
     final url = Uri.parse('$baseUrl/logout');
 
@@ -262,9 +263,9 @@ class ApiService {
     };
   }
 
-// -------------------------
-// LOGOUT FROM ALL DEVICES
-// -------------------------
+  // -------------------------
+  // LOGOUT FROM ALL DEVICES
+  // -------------------------
   static Future<Map<String, dynamic>> logoutAll(String accessToken) async {
     final url = Uri.parse('$baseUrl/logoutAll');
 
@@ -290,15 +291,16 @@ class ApiService {
       "message": data["message"],
     };
   }
-// -------------------------
-// VERIFY PASSWORD
-// -------------------------
+
+  // -------------------------
+  // VERIFY PASSWORD
+  // -------------------------
   static Future<Map<String, dynamic>> verifyPassword({
     required String email,
     required String password,
     required String token,
   }) async {
-    final url = Uri.parse('$baseUrl/verify-password'); // make sure this endpoint exists in your backend
+    final url = Uri.parse('$baseUrl/verify-password');
 
     final response = await http.post(
       url,
@@ -327,6 +329,61 @@ class ApiService {
     };
   }
 
+  // -------------------------
+  // GET CONSULTANT DETAILS
+  // -------------------------
+  static Future<Map<String, dynamic>> getConsultantDetails(int consultantId) async {
+    final url = Uri.parse('$mainBaseUrl/consultants/$consultantId');
 
+    final response = await http.get(
+      url,
+      headers: {"Content-Type": "application/json"},
+    );
 
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode != 200) {
+      return {
+        "status": "error",
+        "message": data["message"] ?? "Failed to load consultant",
+      };
+    }
+
+    return data;
+  }
+
+  // ---------------------------------------------------------
+  // NEW SCHOLARSHIP APIS (ADDED WITHOUT CHANGING EXISTING CODE)
+  // ---------------------------------------------------------
+
+  static Future<Map<String, dynamic>> getAllScholarships({int page = 1}) async {
+    final url = Uri.parse('$mainBaseUrl/scholarships?page=$page');
+    final response = await http.get(url, headers: {"Content-Type": "application/json"});
+    final data = jsonDecode(response.body);
+    return response.statusCode == 200 ? data : {"status": "error", "message": data["message"] ?? "Failed"};
+  }
+
+  static Future<Map<String, dynamic>> getScholarshipDetails(int id) async {
+    final url = Uri.parse('$mainBaseUrl/scholarships/$id');
+    final response = await http.get(url, headers: {"Content-Type": "application/json"});
+    final data = jsonDecode(response.body);
+    return response.statusCode == 200 ? data : {"status": "error", "message": data["message"] ?? "Failed"};
+  }
+
+  static Future<Map<String, dynamic>> getFeaturedScholarships() async {
+    final url = Uri.parse('$mainBaseUrl/scholarships/featured');
+    final response = await http.get(url, headers: {"Content-Type": "application/json"});
+    final data = jsonDecode(response.body);
+    return response.statusCode == 200 ? data : {"status": "error", "message": data["message"] ?? "Failed"};
+  }
+
+  static Future<Map<String, dynamic>> toggleSaveScholarship(int id, String token) async {
+    final url = Uri.parse('$mainBaseUrl/scholarships/$id/save');
+    final response = await http.post(
+      url,
+      headers: {"Content-Type": "application/json", "Authorization": "Bearer $token"},
+    );
+    final data = jsonDecode(response.body);
+    return response.statusCode == 200 ? data : {"status": "error", "message": data["message"] ?? "Failed"};
+  }
 }

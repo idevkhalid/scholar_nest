@@ -6,10 +6,10 @@ import '../providers/filter_provider.dart';
 import '../providers/saved_provider.dart';
 import '../providers/auth_provider.dart';
 import '../constants/colors.dart';
+import '../services/api_service.dart';
 import 'login_screen.dart';
 import 'profile_screen.dart';
 import 'knowledge_base_screen.dart';
-// 1. IMPORT THE DETAILS SCREEN
 import 'scholarship_details_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -21,6 +21,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  late Future<Map<String, dynamic>> _scholarshipsFuture;
 
   final List<String> banners = const [
     'assets/images/banner1.png',
@@ -28,22 +29,11 @@ class _HomeScreenState extends State<HomeScreen> {
     'assets/images/banner3.png',
   ];
 
-  final List<Map<String, String>> scholarships = const [
-    {
-      'title': 'Full Tuition Scholarship',
-      'institution': 'Harvard University',
-      'badge': '\$25,000/year',
-      'deadline': 'Dec 31, 2025',
-      'country': 'USA',
-    },
-    {
-      'title': 'Merit-Based Scholarship',
-      'institution': 'Oxford University',
-      'badge': '\$30,000/year',
-      'deadline': 'Jan 15, 2026',
-      'country': 'UK',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _scholarshipsFuture = ApiService.getAllScholarships();
+  }
 
   void _onItemTapped(int index) {
     setState(() => _selectedIndex = index);
@@ -77,18 +67,9 @@ class _HomeScreenState extends State<HomeScreen> {
         showUnselectedLabels: true,
         elevation: 10,
         items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.menu_book),
-            label: 'Knowledge Base',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(icon: Icon(Icons.menu_book), label: 'Knowledge Base'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
       ),
     );
@@ -123,8 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 hintText: "Search scholarships...",
                 prefixIcon: Icon(Icons.search, color: Color(0xFF1B3C53)),
                 border: InputBorder.none,
-                contentPadding:
-                EdgeInsets.symmetric(horizontal: 15, vertical: 14),
+                contentPadding: EdgeInsets.symmetric(horizontal: 15, vertical: 14),
               ),
             ),
           ),
@@ -181,11 +161,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(15),
-                  child: Image.asset(
-                    banner,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                  ),
+                  child: Image.asset(banner, fit: BoxFit.cover, width: double.infinity),
                 ),
               );
             }).toList(),
@@ -200,46 +176,105 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const SizedBox(height: 20),
 
-          /// ---------------- SCHOLARSHIPS ----------------
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 15),
-            child: Column(
-              children: scholarships.map((item) {
-                final isSaved = savedProvider.isSaved(item);
+          /// ---------------- SCHOLARSHIPS (API DATA) ----------------
+          FutureBuilder<Map<String, dynamic>>(
+            future: _scholarshipsFuture,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+              }
 
-                return ModernScholarshipCard(
-                  title: item['title']!,
-                  institution: item['institution']!,
-                  badge: item['badge']!,
-                  deadline: item['deadline']!,
-                  country: item['country']!,
-                  isSaved: isSaved,
-                  // 2. PASS THE NAVIGATION FUNCTION HERE
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ScholarshipDetailsPage(),
-                      ),
+              if (snapshot.hasError || snapshot.data == null) {
+                return const Center(child: Text("Failed to load data"));
+              }
+
+              debugPrint("Full API Response: ${snapshot.data}");
+
+              List<dynamic> scholarshipsList = [];
+
+              // Check possible API keys
+              if (snapshot.data!['data'] is List) {
+                scholarshipsList = snapshot.data!['data'];
+              } else if (snapshot.data!['data'] is Map && snapshot.data!['data']['data'] is List) {
+                scholarshipsList = snapshot.data!['data']['data'];
+              } else if (snapshot.data!['scholarships'] is List) {
+                scholarshipsList = snapshot.data!['scholarships'];
+              }
+
+              /// ---------------- DUMMY DATA FALLBACK ----------------
+              /// If the list is empty, we show these mock items for testing
+              if (scholarshipsList.isEmpty) {
+                scholarshipsList = [
+                  {
+                    'id': 101,
+                    'title': 'Global Excellence Scholarship',
+                    'university': 'Harvard University',
+                    'amount': '45,000',
+                    'currency': 'USD',
+                    'deadline': 'Dec 20, 2025',
+                    'country': 'USA',
+                  },
+                  {
+                    'id': 102,
+                    'title': 'STEM Future Leaders Grant',
+                    'university': 'Oxford University',
+                    'amount': '32,000',
+                    'currency': 'GBP',
+                    'deadline': 'Jan 15, 2026',
+                    'country': 'UK',
+                  },
+                  {
+                    'id': 103,
+                    'title': 'DAAD Postgraduate Award',
+                    'university': 'Technical University of Munich',
+                    'amount': 'Fully Funded',
+                    'currency': '',
+                    'deadline': 'Feb 10, 2026',
+                    'country': 'Germany',
+                  },
+                ];
+              }
+              /// -------------------------------------------------------
+
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 15),
+                child: Column(
+                  children: scholarshipsList.map((item) {
+                    final isSaved = savedProvider.isSaved(item);
+
+                    return ModernScholarshipCard(
+                      title: item['title']?.toString() ?? 'No Title',
+                      institution: item['university']?.toString() ?? 'No Institution',
+                      badge: "${item['amount'] ?? ''} ${item['currency'] ?? ''}".trim(),
+                      deadline: item['deadline']?.toString() ?? 'No Deadline',
+                      country: item['country']?.toString() ?? 'N/A',
+                      isSaved: isSaved,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ScholarshipDetailsPage(
+                              scholarshipId: int.parse(item['id'].toString()),
+                            ),
+                          ),
+                        );
+                      },
+                      onSave: () {
+                        if (!authProvider.isLoggedIn) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const LoginScreen()),
+                          );
+                        } else {
+                          savedProvider.toggleSave(item);
+                        }
+                      },
                     );
-                  },
-                  onSave: () {
-                    if (!authProvider.isLoggedIn) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const LoginScreen(),
-                        ),
-                      );
-                    } else {
-                      savedProvider.toggleSave(item);
-                    }
-                  },
-                );
-              }).toList(),
-            ),
+                  }).toList(),
+                ),
+              );
+            },
           ),
-
           const SizedBox(height: 20),
         ],
       ),
@@ -247,7 +282,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-/// ---------------- FILTER CHIP ----------------
+// --- DEFINE THE WIDGET CLASSES OUTSIDE THE STATE CLASS ---
+
 class FilterChipDropdown extends StatelessWidget {
   final String value;
   final List<String> items;
@@ -297,11 +333,9 @@ class FilterChipDropdown extends StatelessWidget {
   }
 }
 
-/// ---------------- SCHOLARSHIP CARD ----------------
 class ModernScholarshipCard extends StatefulWidget {
   final String title, institution, badge, deadline, country;
   final VoidCallback onSave;
-  // 3. ADD ONTAP PARAMETER
   final VoidCallback onTap;
   final bool isSaved;
 
@@ -313,7 +347,7 @@ class ModernScholarshipCard extends StatefulWidget {
     required this.deadline,
     required this.country,
     required this.onSave,
-    required this.onTap, // Add to constructor
+    required this.onTap,
     required this.isSaved,
   });
 
@@ -327,7 +361,6 @@ class _ModernScholarshipCardState extends State<ModernScholarshipCard> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      // 4. USE THE ONTAP FUNCTION
       onTap: widget.onTap,
       onTapDown: (_) => setState(() => _scale = 0.97),
       onTapUp: (_) => setState(() => _scale = 1.0),
@@ -337,80 +370,48 @@ class _ModernScholarshipCardState extends State<ModernScholarshipCard> {
         duration: const Duration(milliseconds: 120),
         child: Card(
           margin: const EdgeInsets.symmetric(vertical: 10),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           elevation: 6,
           child: Padding(
             padding: const EdgeInsets.all(18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                /// Badge + Save
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
-                        gradient: const LinearGradient(
-                          colors: [
-                            Color(0xFF1B3C53),
-                            Color(0xFF2F5A75),
-                          ],
-                        ),
+                        gradient: const LinearGradient(colors: [Color(0xFF1B3C53), Color(0xFF2F5A75)]),
                       ),
-                      child: Text(
-                        widget.badge,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      child: Text(widget.badge, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     ),
                     IconButton(
                       onPressed: widget.onSave,
-                      icon: Icon(
-                        widget.isSaved
-                            ? Icons.bookmark
-                            : Icons.bookmark_border,
-                        color: const Color(0xFF1B3C53),
-                      ),
+                      icon: Icon(widget.isSaved ? Icons.bookmark : Icons.bookmark_border, color: const Color(0xFF1B3C53)),
                     ),
                   ],
                 ),
                 const SizedBox(height: 14),
-                Text(
-                  widget.title,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF1B3C53),
-                  ),
-                ),
+                Text(widget.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1B3C53))),
                 const SizedBox(height: 6),
-                Text(
-                  widget.institution,
-                  style: TextStyle(color: Colors.grey[800]),
-                ),
+                Text(widget.institution, style: TextStyle(color: Colors.grey[800])),
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.calendar_today,
-                            size: 16, color: Colors.grey),
+                        const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
                         const SizedBox(width: 4),
                         Text(widget.deadline),
                       ],
                     ),
                     Row(
                       children: [
-                        const Icon(Icons.location_on,
-                            size: 16, color: Colors.grey),
+                        const Icon(Icons.location_on, size: 16, color: Colors.grey),
                         const SizedBox(width: 4),
                         Text(widget.country),
                       ],
