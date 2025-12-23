@@ -38,9 +38,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => OtpVerificationScreen(email: email),
+          builder: (_) => SetNewPasswordScreen(email: email), // only email is required now
         ),
       );
+
+
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(response["message"] ?? "Failed to send OTP")),

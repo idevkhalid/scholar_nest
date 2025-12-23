@@ -169,39 +169,6 @@ class ApiService {
   // -------------------------
   // RESET PASSWORD
   // -------------------------
-  static Future<Map<String, dynamic>> resetPassword({
-    required String email,
-    required String otp,
-    required String password,
-    required String passwordConfirmation,
-  }) async {
-    final url = Uri.parse('$baseUrl/reset-password');
-
-    final response = await http.post(
-      url,
-      headers: {"Content-Type": "application/json"},
-      body: jsonEncode({
-        "email": email,
-        "otp_code": otp,
-        "password": password,
-        "password_confirmation": passwordConfirmation,
-      }),
-    );
-
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode != 200) {
-      return {
-        "status": "error",
-        "message": data["message"] ?? "Password reset failed",
-      };
-    }
-
-    return {
-      "status": data["status"],
-      "message": data["message"],
-    };
-  }
 
   // -------------------------
   // REFRESH TOKEN
@@ -386,4 +353,49 @@ class ApiService {
     final data = jsonDecode(response.body);
     return response.statusCode == 200 ? data : {"status": "error", "message": data["message"] ?? "Failed"};
   }
+  // -------------------------
+// RESET PASSWORD (UPDATED)
+// -------------------------
+  static Future<Map<String, dynamic>> resetPassword({
+    required String email,
+    required String otp,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    final url = Uri.parse('$baseUrl/reset-password');
+
+    try {
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode({
+          "email": email,
+          "otp_code": otp,
+          "password": password,
+          "password_confirmation": passwordConfirmation,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return {
+          "status": "success",
+          "message": data["message"] ?? "Password reset successfully",
+        };
+      } else {
+        return {
+          "status": "error",
+          "message": data["message"] ?? "Password reset failed",
+        };
+      }
+    } catch (e) {
+      return {
+        "status": "error",
+        "message": "Something went wrong. Try again.",
+      };
+    }
+  }
+
+
 }
