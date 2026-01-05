@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'provider.dart'; // Matches your local file name
 import '../services/api_service.dart'; // Ensure path to ApiService is correct
 import '/screens/provider.dart'; // Ensure this import exists
 
@@ -124,20 +123,21 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
                           child: Align(
                             alignment: Alignment.centerLeft,
                             child: GestureDetector(
-                              onTap: () {
-                                if (scholarshipData?['consultant'] != null) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) => ConsultantProfileScreen(
-                                        consultantId: scholarshipData!['consultant']['id'],
-                                      ),
+                              onTap: scholarshipData?['consultant'] == null
+                                  ? null
+                                  : () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ConsultantProfileScreen(
+                                      consultantId: scholarshipData!['consultant']['id'],
                                     ),
-                                  );
-                                }
+                                  ),
+                                );
                               },
                               child: Text(
-                                scholarshipData?['university'] ?? "Not Specified",
+                                scholarshipData?['consultant']?['user']?['name'] ??
+                                    "Not Available",
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   color: ScreenColors.primary,
@@ -150,6 +150,7 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
                         )
                       ],
                     ),
+
                     const SizedBox(height: 16),
                     _buildEligibilityCard(),
                     const SizedBox(height: 20),

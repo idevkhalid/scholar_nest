@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../constants/colors.dart';
+import '../services/api_service.dart'; // Import your ApiService
 
 class ContactSupportScreen extends StatefulWidget {
   const ContactSupportScreen({super.key});
@@ -12,10 +13,69 @@ class ContactSupportScreen extends StatefulWidget {
 class _ContactSupportScreenState extends State<ContactSupportScreen> {
   final _formKey = GlobalKey<FormState>();
 
+  // Controllers
   final TextEditingController nameController = TextEditingController();
   final TextEditingController contactController = TextEditingController();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController messageController = TextEditingController();
+
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    nameController.dispose();
+    contactController.dispose();
+    emailController.dispose();
+    messageController.dispose();
+    super.dispose();
+  }
+
+  // --- API CALL ---
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    // Close keyboard
+    FocusScope.of(context).unfocus();
+
+    final response = await ApiService.submitContactForm(
+      fullName: nameController.text.trim(),
+      contactNumber: contactController.text.trim(),
+      email: emailController.text.trim(),
+      message: messageController.text.trim(),
+    );
+
+    setState(() => _isLoading = false);
+
+    if (!mounted) return;
+
+    if (response['status'] == 'success') {
+      // 1. Show Success Message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response['message']),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      // 2. Clear Form
+      nameController.clear();
+      contactController.clear();
+      emailController.clear();
+      messageController.clear();
+    } else {
+      // 3. Show Error Message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response['message']),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +83,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
 
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: AppColors.backgroundGradient,
         ),
         child: SafeArea(
@@ -61,8 +121,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                       child: Row(
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.arrow_back,
-                                color: Colors.white),
+                            icon: const Icon(Icons.arrow_back, color: Colors.white),
                             onPressed: () => Navigator.pop(context),
                           ),
                           const SizedBox(width: 8),
@@ -88,7 +147,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                   child: Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: AppColors.cardBackground,
+                      color: AppColors.cardBackground, // Ensure this color exists in your constants
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
@@ -133,9 +192,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                             icon: Icons.phone,
                             keyboardType: TextInputType.phone,
                             validator: (value) =>
-                            value!.isEmpty
-                                ? "Enter contact number"
-                                : null,
+                            value!.isEmpty ? "Enter contact number" : null,
                           ),
 
                           // Email
@@ -144,10 +201,11 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                             label: "Email Address",
                             icon: Icons.email,
                             keyboardType: TextInputType.emailAddress,
-                            validator: (value) =>
-                            value!.isEmpty
-                                ? "Enter email address"
-                                : null,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) return "Enter email address";
+                              if (!value.contains('@')) return "Enter a valid email";
+                              return null;
+                            },
                           ),
 
                           // Message
@@ -156,15 +214,16 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                             label: "Message",
                             icon: Icons.message,
                             maxLines: 4,
-                            validator: (value) =>
-                            value!.isEmpty
-                                ? "Enter your message"
-                                : null,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) return "Enter your message";
+                              if (value.length < 10) return "Message must be at least 10 chars";
+                              return null;
+                            },
                           ),
 
                           const SizedBox(height: 30),
 
-                          // Submit Button
+                          // Submit Button with Loading State
                           SizedBox(
                             width: double.infinity,
                             height: 52,
@@ -175,22 +234,17 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                                   borderRadius: BorderRadius.circular(15),
                                 ),
                               ),
-                              onPressed: () {
-                                if (_formKey.currentState!.validate()) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                          "Message sent successfully"),
-                                    ),
-                                  );
-
-                                  nameController.clear();
-                                  contactController.clear();
-                                  emailController.clear();
-                                  messageController.clear();
-                                }
-                              },
-                              child: const Text(
+                              onPressed: _isLoading ? null : _submitForm,
+                              child: _isLoading
+                                  ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                                  : const Text(
                                 "Submit",
                                 style: TextStyle(
                                   fontSize: 16,
@@ -233,6 +287,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
         validator: validator,
         decoration: InputDecoration(
           labelText: label,
+          alignLabelWithHint: maxLines > 1, // Fixes label alignment for message box
           prefixIcon: Icon(icon, color: AppColors.primary),
           filled: true,
           fillColor: Colors.grey.shade50,

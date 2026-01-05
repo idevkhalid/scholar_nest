@@ -10,18 +10,22 @@ class AuthProvider with ChangeNotifier {
   String? _token;
 
   bool get isLoggedIn => _isLoggedIn;
+
   String get userName => _userName;
+
   String get email => _email;
+
   String get userToken => _token ?? "";
 
   AuthProvider() {
     _loadUser();
   }
 
-  // BUG FIX: Added try-catch to prevent crashes on corrupted local data
+  // --- 1. Load User from Local Storage ---
   Future<void> _loadUser() async {
     final prefs = await SharedPreferences.getInstance();
-    final savedToken = prefs.getString('token');
+    // WE USE 'access_token' HERE TO MATCH API SERVICE
+    final savedToken = prefs.getString('access_token');
     final savedUser = prefs.getString('user');
 
     if (savedToken != null && savedUser != null) {
@@ -40,29 +44,36 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  // BUG FIX: Handled empty f_name/l_name to avoid "null null" strings
+  // --- 2. Save User to Local Storage ---
   Future<void> _saveUser(Map<String, dynamic> userData, String token) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('token', token);
+    // SAVE AS 'access_token'
+    await prefs.setString('access_token', token);
     await prefs.setString('user', jsonEncode(userData));
 
     _token = token;
     _userName = userData['name'] ??
         "${userData['f_name'] ?? ''} ${userData['l_name'] ?? ''}".trim();
 
-    if (_userName.isEmpty) _userName = "User"; // Fallback name
+    if (_userName.isEmpty) _userName = "User";
 
     _email = userData['email'] ?? "";
     _isLoggedIn = true;
     notifyListeners();
   }
 
+  // --- 3. Login ---
   Future<bool> login(String email, String password) async {
     try {
       final response = await ApiService.loginUser(email, password);
 
-      if (response['status'] == 'success' || response['access_token'] != null) {
-        await _saveUser(response['user'], response['access_token']);
+      if (response['status'] == 'success') {
+        final data = response;
+        // Ensure we handle the response structure correctly
+        String token = data['access_token'];
+        Map<String, dynamic> user = data['user'];
+
+        await _saveUser(user, token);
         return true;
       }
       return false;
@@ -72,6 +83,7 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  // --- 4. Register ---
   Future<bool> register({
     required String fName,
     required String lName,
@@ -88,9 +100,12 @@ class AuthProvider with ChangeNotifier {
         passwordConfirmation: passwordConfirmation,
       );
 
-      // BUG FIX: Checking both status and existence of token for robustness
-      if (response['status'] == 'success' || response['access_token'] != null) {
-        await _saveUser(response['user'], response['access_token']);
+      if (response['status'] == 'success') {
+        final data = response;
+        String token = data['access_token'];
+        Map<String, dynamic> user = data['user'];
+
+        await _saveUser(user, token);
         return true;
       }
       return false;
@@ -100,32 +115,34 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  // --- 5. Logout (Single Device) ---
   Future<void> logout() async {
-    if (_token != null) {
-      try {
-        await ApiService.logout(_token!);
-      } catch (e) {
-        debugPrint("Logout API error: $e");
-      }
+    try {
+      await ApiService.logout();
+    } catch (e) {
+      debugPrint("Logout API error: $e");
     }
     await _clearLocalData();
   }
 
+  // --- 6. Logout All Devices (FIXED: Added this method back) ---
   Future<void> logoutAllDevices() async {
-    if (_token != null) {
-      try {
-        await ApiService.logoutAll(_token!);
-      } catch (e) {
-        debugPrint("LogoutAll API error: $e");
-      }
+    try {
+      await ApiService.logoutAll();
+    } catch (e) {
+      debugPrint("LogoutAll API error: $e");
     }
     await _clearLocalData();
   }
 
+  // --- Helper: Clear Data ---
   Future<void> _clearLocalData() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('token');
+    await prefs.remove('access_token');
     await prefs.remove('user');
+
+    // ADD THIS LINE: Clear the detailed profile cache too
+    await prefs.remove('user_profile');
 
     _isLoggedIn = false;
     _userName = "";

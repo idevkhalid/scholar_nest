@@ -1,3 +1,4 @@
+// ------------------ HOME SCREEN ------------------
 import 'package:flutter/material.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:provider/provider.dart';
@@ -29,14 +30,70 @@ class _HomeScreenState extends State<HomeScreen> {
     'assets/images/banner3.png',
   ];
 
+  // --- SEARCH VARIABLES ---
+  TextEditingController _searchController = TextEditingController();
+  List<dynamic> _searchResults = [];
+  bool _isSearching = false;
+
   @override
   void initState() {
     super.initState();
-    _scholarshipsFuture = ApiService.getAllScholarships();
+    _loadScholarships();
+
+    // Live search: trigger API as user types
+    _searchController.addListener(() {
+      _performSearch();
+    });
   }
 
   void _onItemTapped(int index) {
     setState(() => _selectedIndex = index);
+  }
+
+  void _loadScholarships() {
+    _scholarshipsFuture = ApiService.getAllScholarships();
+  }
+
+  Future<void> _performSearch() async {
+    final filterProvider = Provider.of<FilterProvider>(context, listen: false);
+    final query = _searchController.text.trim();
+
+    setState(() {
+      _isSearching = true;
+    });
+
+    try {
+      final response = await ApiService.searchScholarships(
+        query: query,
+        country: filterProvider.country != 'All Countries' ? filterProvider.country : null,
+        degreeLevel: filterProvider.degree != 'All Degrees' ? filterProvider.degree : null,
+        fieldOfStudy: filterProvider.major != 'All Majors' ? [filterProvider.major] : null,
+        page: 1,
+        perPage: 20,
+      );
+
+      if (mounted) {
+        setState(() {
+          _isSearching = false;
+          if (response['status'] == 'success') {
+            _searchResults = response['data'] ?? [];
+          } else {
+            _searchResults = [];
+          }
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isSearching = false;
+        _searchResults = [];
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -44,6 +101,11 @@ class _HomeScreenState extends State<HomeScreen> {
     final filterProvider = Provider.of<FilterProvider>(context);
     final savedProvider = Provider.of<SavedProvider>(context);
     final authProvider = Provider.of<AuthProvider>(context);
+
+    // Re-perform search when filters change
+    filterProvider.addListener(() {
+      _performSearch();
+    });
 
     final screens = [
       _buildHomeTab(filterProvider, savedProvider, authProvider),
@@ -99,8 +161,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-            child: const TextField(
-              decoration: InputDecoration(
+            child: TextField(
+              controller: _searchController,
+              decoration: const InputDecoration(
                 hintText: "Search scholarships...",
                 prefixIcon: Icon(Icons.search, color: Color(0xFF1B3C53)),
                 border: InputBorder.none,
@@ -108,8 +171,6 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
-
-          const SizedBox(height: 15),
 
           /// ---------------- FILTERS ----------------
           SizedBox(
@@ -144,7 +205,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const SizedBox(height: 15),
 
-          /// ---------------- SLIDER ----------------
+          /// ---------------- CAROUSEL ----------------
           CarouselSlider(
             items: banners.map((banner) {
               return Container(
@@ -176,105 +237,109 @@ class _HomeScreenState extends State<HomeScreen> {
 
           const SizedBox(height: 20),
 
-          /// ---------------- SCHOLARSHIPS (API DATA) ----------------
-          FutureBuilder<Map<String, dynamic>>(
-            future: _scholarshipsFuture,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator(color: AppColors.primary));
-              }
+          /// ---------------- SCHOLARSHIPS (API DATA OR SEARCH) ----------------
+          if (_isSearching)
+            const Center(child: CircularProgressIndicator(color: AppColors.primary))
+          else if (_searchResults.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 15),
+              child: Column(
+                children: _searchResults.map((item) {
+                  final isSaved = savedProvider.isSaved(item);
 
-              if (snapshot.hasError || snapshot.data == null) {
-                return const Center(child: Text("Failed to load data"));
-              }
-
-              debugPrint("Full API Response: ${snapshot.data}");
-
-              List<dynamic> scholarshipsList = [];
-
-              // Check possible API keys
-              if (snapshot.data!['data'] is List) {
-                scholarshipsList = snapshot.data!['data'];
-              } else if (snapshot.data!['data'] is Map && snapshot.data!['data']['data'] is List) {
-                scholarshipsList = snapshot.data!['data']['data'];
-              } else if (snapshot.data!['scholarships'] is List) {
-                scholarshipsList = snapshot.data!['scholarships'];
-              }
-
-              /// ---------------- DUMMY DATA FALLBACK ----------------
-              /// If the list is empty, we show these mock items for testing
-              if (scholarshipsList.isEmpty) {
-                scholarshipsList = [
-                  {
-                    'id': 101,
-                    'title': 'Global Excellence Scholarship',
-                    'university': 'Harvard University',
-                    'amount': '45,000',
-                    'currency': 'USD',
-                    'deadline': 'Dec 20, 2025',
-                    'country': 'USA',
-                  },
-                  {
-                    'id': 102,
-                    'title': 'STEM Future Leaders Grant',
-                    'university': 'Oxford University',
-                    'amount': '32,000',
-                    'currency': 'GBP',
-                    'deadline': 'Jan 15, 2026',
-                    'country': 'UK',
-                  },
-                  {
-                    'id': 103,
-                    'title': 'DAAD Postgraduate Award',
-                    'university': 'Technical University of Munich',
-                    'amount': 'Fully Funded',
-                    'currency': '',
-                    'deadline': 'Feb 10, 2026',
-                    'country': 'Germany',
-                  },
-                ];
-              }
-              /// -------------------------------------------------------
-
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 15),
-                child: Column(
-                  children: scholarshipsList.map((item) {
-                    final isSaved = savedProvider.isSaved(item);
-
-                    return ModernScholarshipCard(
-                      title: item['title']?.toString() ?? 'No Title',
-                      institution: item['university']?.toString() ?? 'No Institution',
-                      badge: "${item['amount'] ?? ''} ${item['currency'] ?? ''}".trim(),
-                      deadline: item['deadline']?.toString() ?? 'No Deadline',
-                      country: item['country']?.toString() ?? 'N/A',
-                      isSaved: isSaved,
-                      onTap: () {
+                  return ModernScholarshipCard(
+                    title: item['title']?.toString() ?? 'No Title',
+                    institution: item['university']?.toString() ?? 'No Institution',
+                    badge: "${item['amount'] ?? ''} ${item['currency'] ?? ''}".trim(),
+                    deadline: item['deadline']?.toString() ?? 'No Deadline',
+                    country: item['country']?.toString() ?? 'N/A',
+                    isSaved: isSaved,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ScholarshipDetailsPage(
+                            scholarshipId: int.parse(item['id'].toString()),
+                          ),
+                        ),
+                      );
+                    },
+                    onSave: () {
+                      if (!authProvider.isLoggedIn) {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => ScholarshipDetailsPage(
-                              scholarshipId: int.parse(item['id'].toString()),
-                            ),
-                          ),
+                          MaterialPageRoute(builder: (_) => const LoginScreen()),
                         );
-                      },
-                      onSave: () {
-                        if (!authProvider.isLoggedIn) {
+                      } else {
+                        savedProvider.toggleSave(item);
+                      }
+                    },
+                  );
+                }).toList(),
+              ),
+            )
+          else
+            FutureBuilder<Map<String, dynamic>>(
+              future: _scholarshipsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+                }
+
+                if (snapshot.hasError || snapshot.data == null) {
+                  return const Center(child: Text("Failed to load data"));
+                }
+
+                List<dynamic> scholarshipsList = [];
+
+                if (snapshot.data!['data'] is List) {
+                  scholarshipsList = snapshot.data!['data'];
+                } else if (snapshot.data!['data'] is Map && snapshot.data!['data']['data'] is List) {
+                  scholarshipsList = snapshot.data!['data']['data'];
+                } else if (snapshot.data!['scholarships'] is List) {
+                  scholarshipsList = snapshot.data!['scholarships'];
+                }
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  child: Column(
+                    children: scholarshipsList.map((item) {
+                      final isSaved = savedProvider.isSaved(item);
+
+                      return ModernScholarshipCard(
+                        title: item['title']?.toString() ?? 'No Title',
+                        institution: item['university']?.toString() ?? 'No Institution',
+                        badge: "${item['amount'] ?? ''} ${item['currency'] ?? ''}".trim(),
+                        deadline: item['deadline']?.toString() ?? 'No Deadline',
+                        country: item['country']?.toString() ?? 'N/A',
+                        isSaved: isSaved,
+                        onTap: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(builder: (_) => const LoginScreen()),
+                            MaterialPageRoute(
+                              builder: (context) => ScholarshipDetailsPage(
+                                scholarshipId: int.parse(item['id'].toString()),
+                              ),
+                            ),
                           );
-                        } else {
-                          savedProvider.toggleSave(item);
-                        }
-                      },
-                    );
-                  }).toList(),
-                ),
-              );
-            },
-          ),
+                        },
+                        onSave: () {
+                          if (!authProvider.isLoggedIn) {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const LoginScreen()),
+                            );
+                          } else {
+                            savedProvider.toggleSave(item);
+                          }
+                        },
+                      );
+                    }).toList(),
+                  ),
+                );
+              },
+            ),
+
           const SizedBox(height: 20),
         ],
       ),
@@ -282,8 +347,13 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// --- DEFINE THE WIDGET CLASSES OUTSIDE THE STATE CLASS ---
+// -------------- OTHER WIDGETS AND CARDS (UNCHANGED) -----------------
 
+
+// -------------- OTHER WIDGETS AND CARDS (UNCHANGED) -----------------
+
+
+// --- WIDGETS AND CARDS REMAIN THE SAME ---
 class FilterChipDropdown extends StatelessWidget {
   final String value;
   final List<String> items;
@@ -320,12 +390,10 @@ class FilterChipDropdown extends StatelessWidget {
           icon: Icon(icon, size: 18, color: AppColors.primary),
           onChanged: (v) => onChanged(v!),
           items: items
-              .map(
-                (e) => DropdownMenuItem(
-              value: e,
-              child: Text(e),
-            ),
-          )
+              .map((e) => DropdownMenuItem(
+            value: e,
+            child: Text(e),
+          ))
               .toList(),
         ),
       ),

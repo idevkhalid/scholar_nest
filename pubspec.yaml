@@ -17,6 +17,9 @@ dependencies:
   google_fonts: ^5.0.0
   shared_preferences: ^2.1.1
   shimmer: ^3.0.0
+  youtube_player_flutter: ^9.0.1
+  font_awesome_flutter: ^10.7.0
+  flutter_rating_bar: ^4.0.1
 
 dev_dependencies:
   flutter_test:

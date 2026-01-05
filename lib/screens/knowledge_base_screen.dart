@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:scholar_nest/screens/how_to%20apply%20_screen.dart';
 import '../constants/colors.dart';
 import 'professor_list_screen.dart';
+import 'ConsultantListScreen.dart'; // <--- Import the new screen
 
 class KnowledgeBaseScreen extends StatelessWidget {
   const KnowledgeBaseScreen({super.key});
@@ -73,6 +74,7 @@ class KnowledgeBaseScreen extends StatelessWidget {
                 child: ListView(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   children: [
+                    // 1. HOW TO APPLY BUTTON
                     _knowledgeCard(
                       icon: Icons.play_circle_outline,
                       title: "How to Apply",
@@ -87,19 +89,37 @@ class KnowledgeBaseScreen extends StatelessWidget {
                       },
                     ),
                     const SizedBox(height: 20),
+
+                    // 2. PROFESSOR LIST BUTTON
                     _knowledgeCard(
                       icon: Icons.people_outline,
                       title: "Professor List",
                       description: "Find professors who can guide and support you.",
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>  ProfessorListScreen(),
-                            ),
-                          );
-                        },
-                      ),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>  ProfessorListScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 20),
+
+                    // 3. NEW CONSULTANT BUTTON
+                    _knowledgeCard(
+                      icon: Icons.support_agent_outlined, // Good icon for consultants
+                      title: "Consultants",
+                      description: "Connect with experts for personalized guidance.",
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AllConsultantScreen(),
+                          ),
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),

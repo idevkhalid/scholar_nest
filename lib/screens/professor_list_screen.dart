@@ -1,27 +1,47 @@
-import 'dart:ui';
+import 'dart:ui'; // Required for ImageFilter (Glass Effect)
 import 'package:flutter/material.dart';
 import '../constants/colors.dart';
+import '../services/api_service.dart';
+import 'profeesor_detail_screen.dart'; // <--- IMPORT THE DETAIL SCREEN
 
-class ProfessorListScreen extends StatelessWidget {
-  ProfessorListScreen({super.key});
+class ProfessorListScreen extends StatefulWidget {
+  const ProfessorListScreen({super.key});
 
-  final List<Map<String, String>> professors = [
-    {
-      "name": "Dr. Li Wei",
-      "details": "PhD Computer Science • Machine Learning",
-      "email": "li.wei@university.cn",
-    },
-    {
-      "name": "Prof. James Wilson",
-      "details": "PhD Information Technology • Cyber Security",
-      "email": "j.wilson@university.edu.au",
-    },
-    {
-      "name": "Dr. Oliver Thompson",
-      "details": "PhD Software Engineering • Cloud Computing",
-      "email": "oliver.thompson@university.ac.uk",
-    },
-  ];
+  @override
+  State<ProfessorListScreen> createState() => _ProfessorListScreenState();
+}
+
+class _ProfessorListScreenState extends State<ProfessorListScreen> {
+  bool _isLoading = true;
+  List<dynamic> _professors = [];
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchProfessors();
+  }
+
+  // --- Fetch Data from API ---
+  Future<void> _fetchProfessors() async {
+    setState(() => _isLoading = true);
+
+    final response = await ApiService.getProfessors();
+
+    if (mounted) {
+      if (response['status'] == 'success') {
+        setState(() {
+          _professors = response['data'];
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _errorMessage = response['message'];
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +49,7 @@ class ProfessorListScreen extends StatelessWidget {
 
     return Scaffold(
       body: Container(
+        // Restore Background Gradient
         decoration: const BoxDecoration(
           gradient: AppColors.backgroundGradient,
         ),
@@ -36,11 +57,11 @@ class ProfessorListScreen extends StatelessWidget {
           top: false,
           child: Column(
             children: [
-              // ---------------- GLASS HEADER (MATCHED) ----------------
+              // ---------------- GLASS HEADER ----------------
               ClipRRect(
                 borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
+                  bottomLeft: Radius.circular(25),
+                  bottomRight: Radius.circular(25),
                 ),
                 child: BackdropFilter(
                   filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
@@ -53,7 +74,7 @@ class ProfessorListScreen extends StatelessWidget {
                       right: 20,
                     ),
                     decoration: BoxDecoration(
-                    color: AppColors.primary.withAlpha(120),
+                      color: AppColors.primary.withAlpha(120),
                       borderRadius: const BorderRadius.only(
                         bottomLeft: Radius.circular(30),
                         bottomRight: Radius.circular(30),
@@ -65,8 +86,7 @@ class ProfessorListScreen extends StatelessWidget {
                     child: Row(
                       children: [
                         IconButton(
-                          icon: const Icon(Icons.arrow_back,
-                              color: Colors.white),
+                          icon: const Icon(Icons.arrow_back, color: Colors.white),
                           onPressed: () => Navigator.pop(context),
                         ),
                         const SizedBox(width: 8),
@@ -86,19 +106,60 @@ class ProfessorListScreen extends StatelessWidget {
 
               const SizedBox(height: 20),
 
-              // ---------------- LIST ----------------
+              // ---------------- DYNAMIC LIST ----------------
               Expanded(
-                child: ListView.builder(
-                  padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  itemCount: professors.length,
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _errorMessage != null
+                    ? Center(
+                  child: Text(
+                    _errorMessage!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                )
+                    : _professors.isEmpty
+                    ? const Center(
+                    child: Text("No professors found.",
+                        style: TextStyle(color: Colors.grey)))
+                    : ListView.builder(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 10),
+                  itemCount: _professors.length,
                   itemBuilder: (context, index) {
-                    final prof = professors[index];
+                    final prof = _professors[index];
 
-                    return _knowledgeStyleCard(
-                      title: prof["name"]!,
-                      description: prof["details"]!,
-                      email: prof["email"]!,
+                    // Safely Extract Data
+                    final int profId = prof['id']; // <--- Get ID
+                    final name = prof['name'] ?? "Unknown";
+                    final dept = prof['department'] ?? "";
+                    final uni = prof['university_name'] ?? "";
+                    final country = prof['university_country'] ?? "";
+                    final email = prof['email'] ?? "No Email";
+
+                    // Create Description String
+                    final details = [dept, uni, country]
+                        .where((s) => s.isNotEmpty)
+                        .join(" • ");
+
+                    // Wrap Card in GestureDetector to handle clicks
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                ProfessorDetailScreen(
+                                  professorId: profId,
+                                  professorName: name,
+                                ),
+                          ),
+                        );
+                      },
+                      child: _knowledgeStyleCard(
+                        title: name,
+                        description: details,
+                        email: email,
+                      ),
                     );
                   },
                 ),
@@ -110,7 +171,7 @@ class ProfessorListScreen extends StatelessWidget {
     );
   }
 
-  // ---------------- CARD (UNCHANGED DESIGN) ----------------
+  // ---------------- CARD DESIGN ----------------
   Widget _knowledgeStyleCard({
     required String title,
     required String description,
@@ -159,6 +220,8 @@ class ProfessorListScreen extends StatelessWidget {
                 const SizedBox(height: 6),
                 Text(
                   description,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     fontSize: 14,
                     color: Colors.black54,
@@ -175,8 +238,7 @@ class ProfessorListScreen extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.chevron_right,
-              color: Colors.grey, size: 28),
+          const Icon(Icons.chevron_right, color: Colors.grey, size: 28),
         ],
       ),
     );
