@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:scholar_nest/screens/user_profile_screen.dart';
 
 import '../providers/auth_provider.dart';
 import '../constants/colors.dart';
@@ -133,7 +134,15 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     child: Column(
                       children: [
-                        _profileTile(Icons.person, "Profile", () {}),
+                        _profileTile(Icons.person, "Profile", () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                              const UserProfileScreen(),
+                            ),
+                          );
+                        }),
 
                         _divider(),
 

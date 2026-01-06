@@ -239,82 +239,7 @@ class ApiService {
     return headers;
   }
 
-  // ===========================================================================
-  // USER PROFILE METHODS
-  // ===========================================================================
 
-  // 1. GET Profile
-  static Future<Map<String, dynamic>> getUserProfile() async {
-    final url = Uri.parse('$mainBaseUrl/user/profile');
-    try {
-      final headers = await _getHeaders();
-      final response = await http.get(url, headers: headers);
-      final data = jsonDecode(response.body);
-
-      if (response.statusCode == 200) {
-        if (data['profile'] != null) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('user_profile', jsonEncode(data['profile']));
-        }
-        return data;
-      } else {
-        return {"status": "error", "message": data["message"] ?? "Failed to load profile"};
-      }
-    } catch (e) {
-      return {"status": "error", "message": "Connection error: $e"};
-    }
-  }
-
-  // 2. GET Cached Profile (FIXED: Added this missing method)
-  static Future<Map<String, dynamic>?> getCachedProfile() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? profileString = prefs.getString('user_profile');
-    if (profileString != null) {
-      return jsonDecode(profileString);
-    }
-    return null;
-  }
-
-  // 3. UPDATE Profile (FIXED: Using PUT)
-  static Future<Map<String, dynamic>> updateUserProfile(Map<String, dynamic> profileData) async {
-    final url = Uri.parse('$mainBaseUrl/user/profile');
-
-    print("Attempting UPDATE to: $url"); // Debug log
-
-    try {
-      final headers = await _getHeaders();
-
-      // We use PUT because Laravel often requires it for updates
-      final response = await http.put(
-        url,
-        headers: headers,
-        body: jsonEncode(profileData),
-      );
-
-      final data = jsonDecode(response.body);
-      print("Update Response Code: ${response.statusCode}"); // Debug log
-
-      if (response.statusCode == 200) {
-        if (data['profile'] != null) {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('user_profile', jsonEncode(data['profile']));
-        }
-        return {
-          "status": "success",
-          "message": data["message"] ?? "Profile updated successfully",
-          "profile": data["profile"]
-        };
-      } else {
-        return {
-          "status": "error",
-          "message": data["message"] ?? "Failed to update (Server Error ${response.statusCode})",
-          "errors": data["errors"]
-        };
-      }
-    } catch (e) {
-      return {"status": "error", "message": "Connection error: $e"};
-    }
-  }
   // ===========================================================================
   // CONSULTANTS & REVIEWS
   // ===========================================================================
@@ -695,6 +620,122 @@ class ApiService {
       }
     } catch (e) {
       return {"status": "error", "message": "Connection error. Please check your internet."};
+    }
+  }
+  // ---------------------------------------------------------
+  // 14. GET USER PROFILE
+  // ---------------------------------------------------------
+  static Future<Map<String, dynamic>> getUserProfile() async {
+    final url = Uri.parse('$mainBaseUrl/user/profile');
+    try {
+      final headers = await _getHeaders();
+      final response = await http.get(url, headers: headers);
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && data['status'] == 'success') {
+        return {
+          "status": "success",
+          "data": data['profile'],
+          "completion": data['completion_percentage'] ?? 0,
+          "missing": data['missing_fields'] ?? []
+        };
+      } else {
+        return {"status": "error", "message": "Failed to load profile"};
+      }
+    } catch (e) {
+      return {"status": "error", "message": "Connection error"};
+    }
+  }
+
+
+  // ---------------------------------------------------------
+  // 15. UPDATE USER PROFILE (Using PUT)
+  // ---------------------------------------------------------
+  static Future<Map<String, dynamic>> updateUserProfile(Map<String, dynamic> profileData) async {
+    final url = Uri.parse('$mainBaseUrl/user/profile');
+    try {
+      final headers = await _getHeaders();
+      final body = jsonEncode(profileData);
+
+      // Changed from http.post to http.put
+      final response = await http.put(url, headers: headers, body: body);
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return {
+          "status": "success",
+          "message": data['message'] ?? "Profile updated",
+          "data": data['profile']
+        };
+      } else {
+        // Handle validation errors
+        String message = data['message'] ?? "Update failed";
+        if (data['errors'] != null) {
+          // Extract the first error message available
+          if (data['errors'] is Map) {
+            final firstError = data['errors'].values.first;
+            if (firstError is List && firstError.isNotEmpty) {
+              message = firstError[0];
+            }
+          }
+        }
+        return {"status": "error", "message": message};
+      }
+    } catch (e) {
+      return {"status": "error", "message": "Connection error"};
+    }
+  }
+  // --- UPDATED APPLY METHOD ---
+  static Future<Map<String, dynamic>> applyForScholarship({
+    required int consultantId,
+    required int scholarshipId,
+  }) async {
+    // 1. URL: Use mainBaseUrl (No /auth)
+    final url = Uri.parse("$mainBaseUrl/apply-to-consultant");
+
+    // 2. HEADERS: Use your existing helper to get the correct 'access_token'
+    final headers = await _getHeaders();
+
+    // Debug check: Ensure Authorization header exists
+    if (!headers.containsKey('Authorization')) {
+      return {"success": false, "message": "User not logged in (Token missing)"};
+    }
+
+    try {
+      print("Attempting to apply...");
+      print("URL: $url");
+
+      final response = await http.post(
+        url,
+        headers: headers, // Uses the headers from your helper
+        body: jsonEncode({
+          "consultant_id": consultantId,
+          "scholarship_id": scholarshipId,
+        }),
+      );
+
+      print("Status Code: ${response.statusCode}");
+
+      // 3. Handle HTML errors safely
+      if (response.headers['content-type']?.contains('html') == true) {
+        return {"success": false, "message": "Server returned HTML error (Status: ${response.statusCode})"};
+      }
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return {
+          "success": true,
+          "message": data['message'] ?? "Application submitted successfully"
+        };
+      } else {
+        return {
+          "success": false,
+          "message": data['message'] ?? "Failed with status ${response.statusCode}"
+        };
+      }
+    } catch (e) {
+      return {"success": false, "message": "Network Error: $e"};
     }
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart'; // Ensure path to ApiService is correct
-import '/screens/provider.dart'; // Ensure this import exists
+import '../screens/provider.dart';
+import 'how_to apply _screen.dart'; // Ensure this import points to your profile screen
 
 class ScholarshipDetailsPage extends StatefulWidget {
   final int scholarshipId;
@@ -14,6 +15,9 @@ class ScholarshipDetailsPage extends StatefulWidget {
 class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
   Map<String, dynamic>? scholarshipData;
   bool isLoading = true;
+
+  // --- NEW STATE VARIABLE ---
+  bool isApplying = false;
   String? errorMessage;
 
   @override
@@ -31,7 +35,6 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
           scholarshipData = response['data'];
         } else {
           // --- DUMMY FALLBACK FOR DETAIL PAGE ---
-          // If API fails (because DB is empty), use this mock data
           scholarshipData = {
             "title": "Global Excellence Scholarship",
             "university": "Harvard University",
@@ -60,6 +63,69 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
         }
         isLoading = false;
       });
+    }
+  }
+
+  // --- NEW: HANDLE APPLY LOGIC ---
+  Future<void> _handleApply() async {
+    // 1. Check if consultant data exists
+    final consultantMap = scholarshipData?['consultant'];
+    if (consultantMap == null || consultantMap['id'] == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Consultant information is missing for this scholarship.")),
+      );
+      return;
+    }
+
+    // 2. Set Loading State
+    setState(() {
+      isApplying = true;
+    });
+
+    // 3. Call API
+    // Ensure ApiService.applyForScholarship is implemented as discussed
+    final result = await ApiService.applyForScholarship(
+      consultantId: consultantMap['id'],
+      scholarshipId: widget.scholarshipId,
+    );
+
+    // 4. Handle Result
+    if (mounted) {
+      setState(() {
+        isApplying = false;
+      });
+
+      if (result['success'] == true) {
+        // Success Dialog
+        showDialog(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+            title: const Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.green),
+                SizedBox(width: 10),
+                Text("Success"),
+              ],
+            ),
+            content: Text(result['message'] ?? "Application submitted successfully!"),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("OK", style: TextStyle(color: ScreenColors.primary)),
+              )
+            ],
+          ),
+        );
+      } else {
+        // Error Snackbar
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? "Failed to apply."),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
     }
   }
 
@@ -332,7 +398,6 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
             ),
           ),
           const SizedBox(height: 8),
-          // Using eligibility_criteria list from API
           if (scholarshipData?['eligibility_criteria'] != null)
             ...(scholarshipData!['eligibility_criteria'] as List).map((item) {
               return _buildBulletPoint(item.toString());
@@ -357,6 +422,7 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
     );
   }
 
+  // --- UPDATED BUTTONS WITH LOGIC ---
   Widget _buildBottomButtons() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -364,7 +430,15 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
         children: [
           Expanded(
             child: ElevatedButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                    const HowToApplyScreen(),
+                  ),
+                );
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: ScreenColors.primary,
                 padding: const EdgeInsets.symmetric(vertical: 15),
@@ -376,13 +450,21 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
           const SizedBox(width: 20),
           Expanded(
             child: ElevatedButton(
-              onPressed: () {},
+              // Logic Added: Button calls _handleApply and disables when loading
+              onPressed: isApplying ? null : _handleApply,
               style: ElevatedButton.styleFrom(
                 backgroundColor: ScreenColors.primary,
+                disabledBackgroundColor: ScreenColors.primary.withOpacity(0.7),
                 padding: const EdgeInsets.symmetric(vertical: 15),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
-              child: const Text("Apply", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'serif')),
+              child: isApplying
+                  ? const SizedBox(
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+              )
+                  : const Text("Apply", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'serif')),
             ),
           ),
         ],
