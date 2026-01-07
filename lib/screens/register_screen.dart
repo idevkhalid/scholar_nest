@@ -5,7 +5,7 @@ import '../providers/auth_provider.dart';
 import 'home_screen.dart';
 import 'login_screen.dart';
 import 'verification_screen.dart';
-import '../constants/colors.dart'; // import AppColors
+import '../constants/colors.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -21,7 +21,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController emailCtrl = TextEditingController();
   final TextEditingController passCtrl = TextEditingController();
   final TextEditingController confirmPassCtrl = TextEditingController();
+
   bool _isLoading = false;
+
+  // 1. ADDED: State variables for independent toggles
+  bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   @override
   void dispose() {
@@ -56,6 +61,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       setState(() => _isLoading = false);
 
       if (success) {
+        if (!mounted) return;
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
@@ -68,6 +74,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
         );
       } else {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Registration failed. Please try again.')),
         );
@@ -81,7 +88,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           gradient: AppColors.backgroundGradient,
         ),
         child: SafeArea(
@@ -92,10 +99,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 children: [
                   const SizedBox(height: 40),
 
-                  /// ROUND LOGO (Updated style)
+                  /// ROUND LOGO
                   ClipOval(
                     child: Image.asset(
-                      'assets/logo.jpeg', // your logo
+                      'assets/logo.jpeg',
                       width: width * 0.40,
                       height: width * 0.40,
                       fit: BoxFit.cover,
@@ -160,18 +167,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             keyboardType: TextInputType.emailAddress,
                           ),
                           const SizedBox(height: 12),
+
+                          // 2. PASSWORD FIELD (With Toggle)
                           _buildTextField(
                             controller: passCtrl,
                             label: 'Password',
                             icon: Icons.lock_outline,
-                            obscureText: true,
+                            isPassword: true,
+                            obscureTextState: _obscurePassword, // Pass current state
+                            onToggleVisibility: () {
+                              setState(() {
+                                _obscurePassword = !_obscurePassword;
+                              });
+                            },
                           ),
                           const SizedBox(height: 12),
+
+                          // 3. CONFIRM PASSWORD FIELD (With Toggle)
                           _buildTextField(
                             controller: confirmPassCtrl,
                             label: 'Confirm Password',
                             icon: Icons.lock_outline,
-                            obscureText: true,
+                            isPassword: true,
+                            obscureTextState: _obscureConfirmPassword, // Pass current state
+                            onToggleVisibility: () {
+                              setState(() {
+                                _obscureConfirmPassword = !_obscureConfirmPassword;
+                              });
+                            },
                           ),
                           const SizedBox(height: 20),
 
@@ -251,22 +274,41 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  // 4. UPDATED HELPER METHOD
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
     IconData? icon,
-    bool obscureText = false,
+    bool isPassword = false, // Flag to identify password fields
+    bool? obscureTextState,  // The specific boolean for this field
+    VoidCallback? onToggleVisibility, // The specific toggle function
     TextInputType keyboardType = TextInputType.text,
   }) {
+    // Determine the actual obscure state
+    // If it's a password field, use the passed state. Otherwise, false.
+    final bool isObscured = isPassword ? (obscureTextState ?? true) : false;
+
     return TextFormField(
       controller: controller,
-      obscureText: obscureText,
+      obscureText: isObscured,
       keyboardType: keyboardType,
       decoration: InputDecoration(
         labelText: label,
         filled: true,
         fillColor: Colors.grey[100],
-        prefixIcon: icon != null ? Icon(icon) : null,
+        prefixIcon: icon != null ? Icon(icon, color: AppColors.primary) : null,
+
+        // Add Eye Icon if it is a password field
+        suffixIcon: isPassword
+            ? IconButton(
+          icon: Icon(
+            isObscured ? Icons.visibility_off : Icons.visibility,
+            color: Colors.grey,
+          ),
+          onPressed: onToggleVisibility,
+        )
+            : null,
+
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,

@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../constants/colors.dart';
 import '../services/api_service.dart';
-import 'provider.dart'; // <--- IMPORT YOUR EXISTING PROVIDER SCREEN HERE
+import 'provider.dart' hide AppColors; // <--- IMPORT YOUR EXISTING PROVIDER SCREEN HERE
 
 class AllConsultantScreen extends StatefulWidget {
   const AllConsultantScreen({super.key});

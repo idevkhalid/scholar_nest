@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../services/api_service.dart'; // Ensure path to ApiService is correct
+import '../services/api_service.dart';
 import '../screens/provider.dart';
-import 'how_to apply _screen.dart'; // Ensure this import points to your profile screen
+import 'how_to apply _screen.dart';
 
 class ScholarshipDetailsPage extends StatefulWidget {
   final int scholarshipId;
@@ -15,8 +15,6 @@ class ScholarshipDetailsPage extends StatefulWidget {
 class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
   Map<String, dynamic>? scholarshipData;
   bool isLoading = true;
-
-  // --- NEW STATE VARIABLE ---
   bool isApplying = false;
   String? errorMessage;
 
@@ -34,7 +32,7 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
         if (response['status'] == 'success') {
           scholarshipData = response['data'];
         } else {
-          // --- DUMMY FALLBACK FOR DETAIL PAGE ---
+          // Fallback data
           scholarshipData = {
             "title": "Global Excellence Scholarship",
             "university": "Harvard University",
@@ -44,14 +42,9 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
             "deadline": "Dec 20, 2025",
             "amount": "45,000",
             "currency": "USD",
-            "description": "This is a prestigious scholarship designed for international students who demonstrate exceptional academic achievement and leadership potential. It covers tuition and living expenses.",
-            "detailed_description": "Includes full tuition waiver, monthly stipend of \$2,000, and health insurance.",
-            "eligibility_criteria": [
-              "Minimum GPA of 3.8",
-              "Proven leadership experience",
-              "International student status",
-              "Proficiency in English (IELTS 7.5+)"
-            ],
+            "description": "This is a prestigious scholarship...",
+            "detailed_description": "Includes full tuition waiver...",
+            "eligibility_criteria": ["Minimum GPA of 3.8", "IELTS 7.5+"],
             "consultant": {
               "id": 1,
               "user": {
@@ -66,37 +59,30 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
     }
   }
 
-  // --- NEW: HANDLE APPLY LOGIC ---
   Future<void> _handleApply() async {
-    // 1. Check if consultant data exists
     final consultantMap = scholarshipData?['consultant'];
     if (consultantMap == null || consultantMap['id'] == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Consultant information is missing for this scholarship.")),
+        const SnackBar(content: Text("Consultant information is missing.")),
       );
       return;
     }
 
-    // 2. Set Loading State
     setState(() {
       isApplying = true;
     });
 
-    // 3. Call API
-    // Ensure ApiService.applyForScholarship is implemented as discussed
     final result = await ApiService.applyForScholarship(
       consultantId: consultantMap['id'],
       scholarshipId: widget.scholarshipId,
     );
 
-    // 4. Handle Result
     if (mounted) {
       setState(() {
         isApplying = false;
       });
 
       if (result['success'] == true) {
-        // Success Dialog
         showDialog(
           context: context,
           builder: (ctx) => AlertDialog(
@@ -118,7 +104,6 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
           ),
         );
       } else {
-        // Error Snackbar
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(result['message'] ?? "Failed to apply."),
@@ -181,6 +166,7 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
                     ),
                     const SizedBox(height: 12),
 
+                    // --- SCHOLARSHIP PROVIDER CARD (FIXED) ---
                     _buildDropdownCard(
                       title: "Scholarship Provider",
                       children: [
@@ -202,7 +188,9 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
                                 );
                               },
                               child: Text(
+                                // FIX: Check both locations for the name
                                 scholarshipData?['consultant']?['user']?['name'] ??
+                                    scholarshipData?['consultant']?['name'] ??
                                     "Not Available",
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
@@ -234,6 +222,10 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
   // --- Helper Widgets ---
 
   Widget _buildTopInfoCard() {
+    // FIX: Get avatar from either nested user object OR direct consultant object
+    final avatarUrl = scholarshipData?['consultant']?['user']?['avatar'] ??
+        scholarshipData?['consultant']?['avatar'];
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -277,14 +269,14 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
                 decoration: BoxDecoration(
                   color: Colors.grey.shade300,
                   shape: BoxShape.circle,
-                  image: scholarshipData?['consultant']?['user']?['avatar'] != null
+                  image: avatarUrl != null
                       ? DecorationImage(
-                    image: NetworkImage(scholarshipData!['consultant']['user']['avatar']),
+                    image: NetworkImage(avatarUrl),
                     fit: BoxFit.cover,
                   )
                       : null,
                 ),
-                child: scholarshipData?['consultant']?['user']?['avatar'] == null
+                child: avatarUrl == null
                     ? const Icon(Icons.person, color: Colors.white)
                     : null,
               ),
@@ -422,7 +414,6 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
     );
   }
 
-  // --- UPDATED BUTTONS WITH LOGIC ---
   Widget _buildBottomButtons() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -450,7 +441,6 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
           const SizedBox(width: 20),
           Expanded(
             child: ElevatedButton(
-              // Logic Added: Button calls _handleApply and disables when loading
               onPressed: isApplying ? null : _handleApply,
               style: ElevatedButton.styleFrom(
                 backgroundColor: ScreenColors.primary,

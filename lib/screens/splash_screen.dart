@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // Required for logic
 import '../constants/colors.dart';
 import 'intro_screen.dart';
+import 'walk_through_screen.dart'; // Import the walkthrough screen
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -21,6 +23,9 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
 
+    // ----------------------------------------------------------------
+    // 1. ANIMATION SETUP (Your original code)
+    // ----------------------------------------------------------------
     _controller = AnimationController(
       duration: const Duration(milliseconds: 1000),
       vsync: this,
@@ -48,12 +53,36 @@ class _SplashScreenState extends State<SplashScreen>
       }
     });
 
-    Timer(const Duration(seconds: 2), () {
+    // ----------------------------------------------------------------
+    // 2. NAVIGATION LOGIC
+    // ----------------------------------------------------------------
+    _navigateBasedOnUserStatus();
+  }
+
+  Future<void> _navigateBasedOnUserStatus() async {
+    // A. Wait for 2 seconds (so user sees the logo animation)
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (!mounted) return;
+
+    // B. Check local storage
+    final prefs = await SharedPreferences.getInstance();
+    final bool seenWalkthrough = prefs.getBool('seenWalkthrough') ?? false;
+
+    // C. Decide where to go
+    if (seenWalkthrough) {
+      // User has already seen the walkthrough -> Go to Intro
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (_) => const IntroScreen()),
       );
-    });
+    } else {
+      // First time user -> Go to Walkthrough
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const WalkthroughScreen()),
+      );
+    }
   }
 
   @override
@@ -93,7 +122,7 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                   child: ClipOval(
                     child: Image.asset(
-                      'assets/logo.jpeg', // your logo
+                      'assets/logo.jpeg',
                       fit: BoxFit.cover,
                     ),
                   ),

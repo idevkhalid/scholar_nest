@@ -1,34 +1,32 @@
+import 'dart:ui'; // Required for ImageFilter
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'dart:ui';
 import '../services/api_service.dart';
 import 'WriteReviewScreen.dart';
 
-// --- UPDATED MODERN COLOR PALETTE ---
-class ProfileColors {
-  // Header gradients (lighter/softer)
-  static final Color headerStart = const Color(0xFF1B3C53).withOpacity(0.85);
-  static final Color headerEnd = const Color(0xFF4A90E2).withOpacity(0.85);
-
-  // Screen Background (softer grey-blue)
-  static const Color background = Color(0xFFF2F5F8);
-
-  // Card Backgrounds
-  static const Color cardColor = Colors.white;
-
+// --- YOUR COLOR FILE (Merged for context) ---
+class AppColors {
   static const Color primary = Color(0xFF1B3C53);
-  static const Color secondary = Color(0xFF4A90E2);
-  static const Color textDark = Color(0xFF2D3436);
-  static const Color textLight = Color(0xFF636E72);
+  static const Color background = Color(0xFFEAF1F8);
+  static const Color textPrimary = Color(0xFF1B3C53);
+  static const Color textSecondary = Color(0xFF7B7B7B);
+  static const Color cardBackground = Colors.white;
+
+  // Exact Gradient from your SavedScholarshipsScreen
+  static const LinearGradient backgroundGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [
+      Color(0x9977A9FF), // Light Blue-ish
+      Colors.white,      // White at bottom
+    ],
+  );
 }
 
 class ConsultantProfileScreen extends StatefulWidget {
   final int consultantId;
 
-  const ConsultantProfileScreen({
-    super.key,
-    required this.consultantId,
-  });
+  const ConsultantProfileScreen({super.key, required this.consultantId});
 
   @override
   State<ConsultantProfileScreen> createState() =>
@@ -44,6 +42,7 @@ class _ConsultantProfileScreenState extends State<ConsultantProfileScreen> {
     _consultantFuture = ApiService.getConsultantDetails(widget.consultantId);
   }
 
+  // --- ACTIONS ---
   Future<void> _launchUrl(String urlString) async {
     if (urlString.isEmpty || urlString == "Not available") return;
     if (!urlString.startsWith("http://") && !urlString.startsWith("https://")) {
@@ -63,6 +62,13 @@ class _ConsultantProfileScreenState extends State<ConsultantProfileScreen> {
     }
   }
 
+  Future<void> _makePhoneCall(String phoneNumber) async {
+    final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
+    if (await canLaunchUrl(launchUri)) {
+      await launchUrl(launchUri);
+    }
+  }
+
   String _getInitials(String name) {
     List<String> parts = name.trim().split(" ");
     if (parts.length > 1) {
@@ -75,308 +81,286 @@ class _ConsultantProfileScreenState extends State<ConsultantProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Get Top Padding for Status Bar
+    final double topPadding = MediaQuery.of(context).padding.top;
+    // Calculate header height to push content down (Top padding + content height + bottom padding)
+    final double headerHeight = topPadding + 15 + 30 + 20;
+
     return Scaffold(
-      backgroundColor: ProfileColors.background,
-      body: FutureBuilder<Map<String, dynamic>>(
-        future: _consultantFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-          if (snapshot.hasError) {
-            return Center(child: Text("Error: ${snapshot.error}"));
-          }
+      body: Container(
+        // 1. EXACT BACKGROUND GRADIENT
+        decoration: const BoxDecoration(
+          gradient: AppColors.backgroundGradient,
+        ),
+        child: Stack(
+          children: [
+            // --- 2. SCROLLABLE BODY ---
+            FutureBuilder<Map<String, dynamic>>(
+              future: _consultantFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text("Error: ${snapshot.error}"));
+                }
 
-          final responseData = snapshot.data;
-          if (responseData == null || responseData["status"] != "success") {
-            return Center(
-                child: Text(
-                    "Failed: ${responseData?['message'] ?? 'Unknown Error'}"));
-          }
+                final responseData = snapshot.data;
+                if (responseData == null || responseData["status"] != "success") {
+                  return Center(child: Text("Failed: ${responseData?['message'] ?? 'Unknown Error'}"));
+                }
 
-          final data = responseData["data"] ?? {};
-          final user = data["user"] ?? {};
-          final String name = user["name"] ?? "Consultant";
-          final String title =
-              data["professional_title"] ?? "Professional Consultant";
+                final data = responseData["data"] ?? {};
+                final user = data["user"] ?? {};
+                final String name = user["name"] ?? "Consultant";
+                final String title = data["professional_title"] ?? "Professional Consultant";
+                final String phone = data["phone"] ?? user["phone"] ?? "";
+                final String website = data["company_website"] ?? "";
 
-          String address = [
-            data["street_address"],
-            data["city"],
-            data["state"],
-            data["country"]
-          ].where((s) => s != null && s.toString().isNotEmpty).join(", ");
+                String address = [
+                  data["street_address"],
+                  data["city"],
+                  data["state"],
+                  data["country"]
+                ].where((s) => s != null && s.toString().isNotEmpty).join(", ");
 
-          return CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              // --- 1. SHORT, LIGHTER HEADER ---
-              SliverAppBar(
-                expandedHeight: 150, // Made shorter
-                pinned: true,
-                backgroundColor: ProfileColors.headerStart,
-                leading: IconButton(
-                  icon: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        shape: BoxShape.circle
-                    ),
-                    child: const Icon(Icons.arrow_back_ios_new,
-                        color: Colors.white, size: 18),
+                return SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  padding: EdgeInsets.only(
+                      top: headerHeight + 20, // Push content below the fixed header
+                      left: 20,
+                      right: 20,
+                      bottom: 40
                   ),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                flexibleSpace: FlexibleSpaceBar(
-                  background: Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        // Lighter, more opaque gradient colors
-                        colors: [ProfileColors.headerStart, ProfileColors.headerEnd],
-                      ),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const SizedBox(height: 30),
-                        // Compact Avatar and Text
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            CircleAvatar(
-                              radius: 30,
-                              backgroundColor: Colors.white.withOpacity(0.25),
-                              child: Text(
-                                _getInitials(name),
-                                style: const TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white),
-                              ),
-                            ),
-                            const SizedBox(width: 15),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  name,
-                                  style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white),
-                                ),
-                                const SizedBox(height: 4),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.15),
-                                      borderRadius: BorderRadius.circular(20)
-                                  ),
-                                  child: Text(
-                                    title,
-                                    style: const TextStyle(
-                                        fontSize: 12,
-                                        color: Colors.white),
-                                  ),
-                                ),
-                              ],
-                            )
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              // --- 2. LAYERED BODY CONTENT ---
-              SliverToBoxAdapter(
-                // Move up to create overlap effect
-                child: Transform.translate(
-                  offset: const Offset(0, -25),
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      color: ProfileColors.background,
-                      // Large top radius for overlap
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // ABOUT SECTION (Clean Card)
-                        if (data["experience_summary"] != null) ...[
-                          _buildSectionTitle("About"),
-                          Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                                color: ProfileColors.cardColor,
-                                borderRadius: BorderRadius.circular(25),
-                                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0,5))]
-                            ),
-                            child: Text(
-                              data["experience_summary"],
-                              style: const TextStyle(
-                                  fontSize: 15,
-                                  height: 1.6,
-                                  color: ProfileColors.textLight),
-                            ),
-                          ),
-                          const SizedBox(height: 25),
-                        ],
-
-                        // EXPERTISE (Rounder Chips)
-                        if (data["specializations"] != null ||
-                            data["qualifications"] != null) ...[
-                          _buildSectionTitle("Expertise & Qualifications"),
-                          Wrap(
-                            spacing: 10,
-                            runSpacing: 10,
-                            children: [
-                              ...(data["specializations"] as List? ?? [])
-                                  .map((s) => _buildChip(s, Colors.blue.shade50,
-                                  Colors.blue.shade700)),
-                              ...(data["qualifications"] as List? ?? [])
-                                  .map((q) => _buildChip(q, Colors.orange.shade50,
-                                  Colors.orange.shade800)),
-                            ],
-                          ),
-                          const SizedBox(height: 25),
-                        ],
-
-                        // CONTACT DETAILS (Rounder Card)
-                        _buildSectionTitle("Contact Details"),
-                        Container(
+                  child: Column(
+                    children: [
+                      // Avatar
+                      Center(
+                        child: Container(
                           decoration: BoxDecoration(
-                              color: ProfileColors.cardColor,
-                              borderRadius: BorderRadius.circular(25),
-                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0,5))]
+                              shape: BoxShape.circle,
+                              border: Border.all(color: Colors.white.withOpacity(0.5), width: 4),
+                              boxShadow: [
+                                BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 15, offset: const Offset(0, 5))
+                              ]
                           ),
-                          child: Column(
-                            children: [
-                              _buildContactTile(Icons.phone_rounded, "Phone",
-                                  data["phone"] ?? user["phone"] ?? "Not available"),
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 20),
-                                child: Divider(height: 1, color: Colors.grey.shade100),
-                              ),
-
-                              _buildContactTile(Icons.language_rounded, "Website",
-                                  data["company_website"] ?? "Not available",
-                                  isLink: true),
-
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 20),
-                                child: Divider(height: 1, color: Colors.grey.shade100),
-                              ),
-                              _buildContactTile(Icons.location_on_rounded, "Address",
-                                  address.isNotEmpty ? address : "Not available"),
-                            ],
+                          child: CircleAvatar(
+                            radius: 55,
+                            backgroundColor: AppColors.primary,
+                            child: Text(
+                              _getInitials(name),
+                              style: const TextStyle(fontSize: 34, fontWeight: FontWeight.bold, color: Colors.white),
+                            ),
                           ),
                         ),
+                      ),
 
-                        const SizedBox(height: 35),
+                      const SizedBox(height: 15),
 
-                        // REVIEWS SECTION
-                        ReviewsListWidget(consultantId: widget.consultantId),
+                      // Name & Title
+                      Text(name,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                      const SizedBox(height: 6),
+                      Text(title,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
 
-                        const SizedBox(height: 50),
+                      const SizedBox(height: 25),
+
+                      // Contact Buttons
+                      Row(
+                        children: [
+                          if (phone.isNotEmpty)
+                            Expanded(child: _buildContactButton(Icons.call, "Call", phone, () => _makePhoneCall(phone))),
+                          if (phone.isNotEmpty && website.isNotEmpty)
+                            const SizedBox(width: 15),
+                          if (website.isNotEmpty && website != "Not available")
+                            Expanded(child: _buildContactButton(Icons.language, "Website", "Visit Link", () => _launchUrl(website))),
+                        ],
+                      ),
+
+                      const SizedBox(height: 30),
+
+                      // Details Sections
+                      _buildDetailSection("About", data["experience_summary"]),
+                      if (address.isNotEmpty) _buildLocationSection(address),
+                      _buildExpertiseSection(data["specializations"], data["qualifications"]),
+
+                      const SizedBox(height: 10),
+
+                      // Reviews
+                      ReviewsListWidget(consultantId: widget.consultantId),
+                    ],
+                  ),
+                );
+              },
+            ),
+
+            // --- 3. EXACT GLASS HEADER (Fixed at Top) ---
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(30),
+                  bottomRight: Radius.circular(30),
+                ),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                  child: Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.only(
+                      top: topPadding + 15,
+                      bottom: 20,
+                      left: 20,
+                      right: 20,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.3), // Matches your provided screen
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(30),
+                        bottomRight: Radius.circular(30),
+                      ),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.25),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                        const Text(
+                          "Consultant Profile",
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        // Empty SizedBox to balance the title centering
+                        const SizedBox(width: 20),
                       ],
                     ),
                   ),
                 ),
               ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12, left: 5),
-      child: Text(title,
-          style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: ProfileColors.textDark)),
-    );
-  }
-
-  Widget _buildChip(String label, Color bg, Color text) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(30), // Stadium shape
-      ),
-      child: Text(
-        label,
-        style:
-        TextStyle(color: text, fontWeight: FontWeight.w600, fontSize: 13),
-      ),
-    );
-  }
-
-  Widget _buildContactTile(IconData icon, String title, String value,
-      {bool isLink = false}) {
-    final bool isClickable = isLink && value != "Not available" && value.isNotEmpty;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(25),
-        onTap: isClickable ? () => _launchUrl(value) : null,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                    color: ProfileColors.secondary.withOpacity(0.1),
-                    shape: BoxShape.circle
-                ),
-                child: Icon(icon, size: 20, color: ProfileColors.secondary),
-              ),
-              const SizedBox(width: 15),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title,
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade500, fontWeight: FontWeight.w500)),
-                    const SizedBox(height: 4),
-                    Text(
-                      value,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w600,
-                        color: isClickable
-                            ? Colors.blue[700]
-                            : ProfileColors.textDark,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (isClickable)
-                Icon(Icons.arrow_outward_rounded, size: 18, color: Colors.blue[300]),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
+
+  // --- WIDGET HELPERS ---
+
+  Widget _buildContactButton(IconData icon, String label, String value, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(15),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), shape: BoxShape.circle),
+              child: Icon(icon, color: AppColors.primary, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Flexible(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label.toUpperCase(), style: const TextStyle(fontSize: 10, color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 2),
+                  Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailSection(String title, String? content) {
+    if (content == null || content.isEmpty) return const SizedBox.shrink();
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+      const SizedBox(height: 10),
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.withOpacity(0.1))),
+        child: Text(content, style: const TextStyle(fontSize: 15, height: 1.6, color: AppColors.textSecondary)),
+      ),
+      const SizedBox(height: 25),
+    ]);
+  }
+
+  Widget _buildLocationSection(String address) {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text("Location", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+      const SizedBox(height: 10),
+      Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.withOpacity(0.1))),
+        child: Row(
+          children: [
+            const Icon(Icons.location_on, color: Colors.redAccent, size: 24),
+            const SizedBox(width: 12),
+            Expanded(child: Text(address, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w500))),
+          ],
+        ),
+      ),
+      const SizedBox(height: 25),
+    ]);
+  }
+
+  Widget _buildExpertiseSection(dynamic specs, dynamic quals) {
+    List<String> items = [];
+    if (specs != null) items.addAll(List<String>.from(specs));
+    if (quals != null) items.addAll(List<String>.from(quals));
+
+    if (items.isEmpty) return const SizedBox.shrink();
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const Text("Expertise", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+      const SizedBox(height: 10),
+      Wrap(
+        spacing: 10, runSpacing: 10,
+        children: items.map((i) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.primary.withOpacity(0.2))),
+          child: Text(i, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 13)),
+        )).toList(),
+      ),
+      const SizedBox(height: 25),
+    ]);
+  }
 }
 
 // ------------------------------------------------------------------
-//  REVIEWS LIST WIDGET (Updated Look)
+//  REVIEWS LIST
+// ------------------------------------------------------------------
+// ------------------------------------------------------------------
+//  REVIEWS LIST (Updated with "See More" logic)
 // ------------------------------------------------------------------
 class ReviewsListWidget extends StatefulWidget {
   final int consultantId;
@@ -388,6 +372,9 @@ class ReviewsListWidget extends StatefulWidget {
 
 class _ReviewsListWidgetState extends State<ReviewsListWidget> {
   late Future<Map<String, dynamic>> _reviewsFuture;
+
+  // 1. New variable to control "See More" / "See Less"
+  bool _isExpanded = false;
 
   @override
   void initState() {
@@ -404,23 +391,17 @@ class _ReviewsListWidgetState extends State<ReviewsListWidget> {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Padding(
-              padding: EdgeInsets.only(left: 5),
-              child: Text(
-                "Reviews",
+            const Text("Reviews",
                 style: TextStyle(
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: ProfileColors.textDark),
-              ),
-            ),
-            TextButton.icon(
-              onPressed: () async {
+                    color: AppColors.textPrimary)),
+            InkWell(
+              onTap: () async {
                 await Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -428,16 +409,11 @@ class _ReviewsListWidgetState extends State<ReviewsListWidget> {
                             consultantId: widget.consultantId)));
                 _loadReviews();
               },
-              style: TextButton.styleFrom(
-                  foregroundColor: ProfileColors.secondary,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20))
-              ),
-              icon: const Icon(Icons.edit_note_rounded, size: 18),
-              label: const Text(
-                "Write Review",
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
+              child: const Text("Write Review",
+                  style: TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18)),
             ),
           ],
         ),
@@ -447,16 +423,12 @@ class _ReviewsListWidgetState extends State<ReviewsListWidget> {
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
-                  child: Padding(
-                      padding: EdgeInsets.all(20),
-                      child: CircularProgressIndicator()));
-            }
-            if (snapshot.hasError) {
-              return const Text("Unable to load reviews.");
+                  child: CircularProgressIndicator(color: AppColors.primary));
             }
 
-            final data = snapshot.data;
+            // Safe parsing
             List reviews = [];
+            final data = snapshot.data;
             try {
               if (data != null &&
                   data['data'] is Map &&
@@ -465,40 +437,79 @@ class _ReviewsListWidgetState extends State<ReviewsListWidget> {
                 reviews = (rData is Map && rData['data'] is List)
                     ? rData['data']
                     : (rData is List ? rData : []);
-              } else if (data?['data'] is List) {
-                reviews = data?['data'];
               }
-            } catch (e) {
-              // Ignore parse error
-            }
+            } catch (_) {}
 
             if (reviews.isEmpty) {
               return Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 40),
+                padding: const EdgeInsets.all(30),
                 decoration: BoxDecoration(
-                  color: ProfileColors.cardColor,
-                  borderRadius: BorderRadius.circular(25),
-                ),
-                child: Column(
-                  children: [
-                    Icon(Icons.comments_disabled_rounded,
-                        color: Colors.grey.shade300, size: 50),
-                    const SizedBox(height: 15),
-                    Text("No reviews yet.",
-                        style: TextStyle(color: Colors.grey.shade500, fontWeight: FontWeight.w600)),
-                  ],
-                ),
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16)),
+                child: Center(
+                    child: Text("No reviews yet.",
+                        style: TextStyle(color: Colors.grey.shade500))),
               );
             }
 
+            // 2. Logic to slice the list
+            final int initialCount = 3; // How many to show initially
+            final bool hasMore = reviews.length > initialCount;
+
+            // If expanded, show all. If not, show only the first 4.
+            final List visibleReviews = _isExpanded
+                ? reviews
+                : (hasMore ? reviews.sublist(0, initialCount) : reviews);
+
             return Column(
-              children: reviews.map((r) {
-                if (r is Map<String, dynamic>) {
-                  return _ReviewItem(reviewData: r);
-                }
-                return const SizedBox();
-              }).toList(),
+              children: [
+                // Render the visible list
+                ...visibleReviews.map((r) => r is Map<String, dynamic>
+                    ? _ReviewItem(reviewData: r)
+                    : const SizedBox()).toList(),
+
+                // 3. The "See More" Button
+                if (hasMore)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: TextButton(
+                        onPressed: () {
+                          setState(() {
+                            _isExpanded = !_isExpanded;
+                          });
+                        },
+                        style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            backgroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                                side: BorderSide(color: AppColors.primary.withOpacity(0.2))
+                            )
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              _isExpanded ? "Show Less" : "See More Reviews (${reviews.length - initialCount} more)",
+                              style: const TextStyle(
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Icon(
+                              _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+                              color: AppColors.primary,
+                              size: 20,
+                            )
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             );
           },
         ),
@@ -506,9 +517,8 @@ class _ReviewsListWidgetState extends State<ReviewsListWidget> {
     );
   }
 }
-
 // ------------------------------------------------------------------
-//  SINGLE REVIEW ITEM (More Rounded)
+//  REVIEW ITEM (Reactions Fixed: Left - Center - Right)
 // ------------------------------------------------------------------
 class _ReviewItem extends StatefulWidget {
   final Map<String, dynamic> reviewData;
@@ -532,20 +542,13 @@ class _ReviewItemState extends State<_ReviewItem> {
 
   void _parseData() {
     likesCount = int.tryParse(widget.reviewData['like_count'].toString()) ?? 0;
-    dislikesCount =
-        int.tryParse(widget.reviewData['dislike_count'].toString()) ?? 0;
-    helpfulCount =
-        int.tryParse(widget.reviewData['helpful_count'].toString()) ?? 0;
+    dislikesCount = int.tryParse(widget.reviewData['dislike_count'].toString()) ?? 0;
+    helpfulCount = int.tryParse(widget.reviewData['helpful_count'].toString()) ?? 0;
 
-    final reactionObj = widget.reviewData['my_reaction'];
-    if (reactionObj != null) {
-      if (reactionObj is Map && reactionObj['reaction'] != null) {
-        myReactionType = reactionObj['reaction'].toString();
-      } else if (reactionObj is Map && reactionObj['type'] != null) {
-        myReactionType = reactionObj['type'].toString();
-      } else if (reactionObj is String) {
-        myReactionType = reactionObj;
-      }
+    final r = widget.reviewData['my_reaction'];
+    if (r != null) {
+      if (r is Map && r['reaction'] != null) myReactionType = r['reaction'].toString();
+      else if (r is String) myReactionType = r;
     }
   }
 
@@ -569,11 +572,7 @@ class _ReviewItemState extends State<_ReviewItem> {
 
     bool success;
     if (myReactionType == null) {
-      try {
-        success = await ApiService.removeReaction(reviewId);
-      } catch (_) {
-        success = false;
-      }
+      try { success = await ApiService.removeReaction(reviewId); } catch (_) { success = false; }
     } else {
       success = await ApiService.addReaction(reviewId, myReactionType!);
     }
@@ -594,147 +593,103 @@ class _ReviewItemState extends State<_ReviewItem> {
     if (type == 'helpful') helpfulCount += change;
   }
 
-  String _getInitials(String? fname, String? lname) {
-    String f = (fname != null && fname.isNotEmpty) ? fname[0] : "";
-    String l = (lname != null && lname.isNotEmpty) ? lname[0] : "";
-    return (f + l).toUpperCase();
-  }
+  String _getInitials(String? f, String? l) => "${(f ?? '').isNotEmpty ? f![0] : ''}${(l ?? '').isNotEmpty ? l![0] : ''}".toUpperCase();
 
   @override
   Widget build(BuildContext context) {
-    final hasReplied = widget.reviewData['has_replied'] == true;
-    final reply = widget.reviewData['consultant_reply'];
-    final reviewText =
-        widget.reviewData['review'] ?? widget.reviewData['comment'] ?? "";
     final userObj = widget.reviewData['user'] ?? {};
-    final userName =
-    "${userObj['f_name'] ?? ''} ${userObj['l_name'] ?? ''}".trim();
+    final userName = "${userObj['f_name'] ?? ''} ${userObj['l_name'] ?? ''}".trim();
     final rating = widget.reviewData['rating'] ?? 0;
+    final reviewText = widget.reviewData['review'] ?? widget.reviewData['comment'] ?? "";
+    final reply = widget.reviewData['consultant_reply'];
 
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-          color: ProfileColors.cardColor,
-          borderRadius: BorderRadius.circular(25), // Rounder reviews
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0,5))]
+        color: AppColors.cardBackground,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                    color: ProfileColors.primary.withOpacity(0.1), shape: BoxShape.circle),
-                child: Text(
-                  _getInitials(userObj['f_name'], userObj['l_name']),
-                  style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: ProfileColors.primary),
-                ),
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: AppColors.primary.withOpacity(0.1),
+                child: Text(_getInitials(userObj['f_name'], userObj['l_name']), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary)),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      userName.isEmpty ? "Anonymous" : userName,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold, fontSize: 15),
-                    ),
-                    const SizedBox(height: 2),
+                    Text(userName.isEmpty ? "Anonymous" : userName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary)),
                     Row(
-                      children: List.generate(5, (index) {
-                        return Icon(
-                          index < rating ? Icons.star_rounded : Icons.star_outline_rounded,
-                          size: 16,
-                          color: Colors.amber,
-                        );
-                      }),
+                      children: List.generate(5, (index) => Icon(index < rating ? Icons.star_rounded : Icons.star_outline_rounded, size: 14, color: index < rating ? Colors.amber : Colors.grey.shade300)),
                     )
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          Text(reviewText,
-              style: const TextStyle(
-                  color: ProfileColors.textDark, height: 1.5, fontSize: 15)),
-          if (hasReplied && reply != null) ...[
-            const SizedBox(height: 15),
+          const SizedBox(height: 10),
+          Text(reviewText, style: const TextStyle(color: AppColors.textPrimary, height: 1.5, fontSize: 14)),
+
+          if (reply != null) ...[
+            const SizedBox(height: 12),
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(15),
-              decoration: BoxDecoration(
-                color: ProfileColors.background,
-                borderRadius: BorderRadius.circular(15),
-              ),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(8)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(children: [
-                    Icon(Icons.reply_rounded, size: 16, color: ProfileColors.primary.withOpacity(0.7)),
-                    const SizedBox(width: 8),
-                    Text("Consultant Reply",
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                            color: ProfileColors.primary.withOpacity(0.8))),
-                  ]),
-
-                  const SizedBox(height: 5),
-                  Text(reply,
-                      style: const TextStyle(
-                          fontStyle: FontStyle.italic,
-                          fontSize: 14,
-                          color: Colors.black87)),
+                  const Text("Response:", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+                  const SizedBox(height: 2),
+                  Text(reply, style: const TextStyle(fontSize: 13, color: AppColors.textPrimary)),
                 ],
               ),
             ),
           ],
-          const SizedBox(height: 15),
-          Row(
-            children: [
-              _buildAction('like', Icons.thumb_up_outlined, Icons.thumb_up_rounded,
-                  likesCount),
-              const SizedBox(width: 20),
-              _buildAction('dislike', Icons.thumb_down_outlined,
-                  Icons.thumb_down_rounded, dislikesCount),
-              const SizedBox(width: 20),
-              _buildAction('helpful', Icons.lightbulb_outline_rounded, Icons.lightbulb_rounded,
-                  helpfulCount),
-            ],
-          )
+
+          const SizedBox(height: 16),
+          const Divider(),
+
+          // --- FIXED REACTION ROW (SpaceBetween for Left/Center/Right placement) ---
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildAction('like', Icons.thumb_up_alt_outlined, Icons.thumb_up_alt, likesCount),
+                _buildAction('dislike', Icons.thumb_down_alt_outlined, Icons.thumb_down_alt, dislikesCount),
+                _buildAction('helpful', Icons.lightbulb_outline, Icons.lightbulb, helpfulCount),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildAction(
-      String type, IconData iconOff, IconData iconOn, int count) {
+  Widget _buildAction(String type, IconData iconOff, IconData iconOn, int count) {
     bool isActive = myReactionType == type;
-    return GestureDetector(
+    Color color = isActive ? AppColors.primary : Colors.grey.shade400;
+
+    return InkWell(
       onTap: () => _handleReaction(type),
-      child: Row(
-        children: [
-          Icon(isActive ? iconOn : iconOff,
-              size: 20,
-              color: isActive ? ProfileColors.secondary : Colors.grey.shade400),
-          const SizedBox(width: 6),
-          if (count > 0)
-            Text("$count",
-                style: TextStyle(
-                    fontSize: 13,
-                    color: isActive ? ProfileColors.secondary : Colors.grey.shade500,
-                    fontWeight: FontWeight.bold)),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Row(
+          children: [
+            Icon(isActive ? iconOn : iconOff, size: 20, color: color),
+            const SizedBox(width: 6),
+            Text("$count", style: TextStyle(fontSize: 13, color: color, fontWeight: FontWeight.bold)),
+          ],
+        ),
       ),
     );
   }

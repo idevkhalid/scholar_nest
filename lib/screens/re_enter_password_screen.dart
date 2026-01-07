@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/colors.dart';
-import '../providers/auth_provider.dart';
+import '../services/api_service.dart'; // Ensure this import exists
 import 'forgot_password_screen.dart';
-import 'delete_account_screen.dart';
+import 'login_screen.dart'; // Import your login screen
 
 class ReEnterPasswordScreen extends StatefulWidget {
   const ReEnterPasswordScreen({super.key});
@@ -17,8 +17,13 @@ class _ReEnterPasswordScreenState extends State<ReEnterPasswordScreen> {
   bool isObscure = true;
   bool isLoading = false;
 
-  Future<void> _confirmPassword() async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+  @override
+  void dispose() {
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleDeleteAccount() async {
     final password = _passwordController.text.trim();
 
     if (password.isEmpty) {
@@ -31,17 +36,37 @@ class _ReEnterPasswordScreenState extends State<ReEnterPasswordScreen> {
     setState(() => isLoading = true);
 
     try {
-      // ===== DUMMY PASSWORD VERIFICATION =====
-      // Replace this block with your actual API call later
-      await Future.delayed(const Duration(seconds: 1)); // simulate API
-      if (password == "123456") {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (_) => const DeleteAccountScreen()),
+      // 1. Call the Real API
+      final result = await ApiService.deleteAccount(password);
+
+      if (!mounted) return;
+
+      if (result['status'] == 'success') {
+        // 2. SUCCESS: Clear data and Logout
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.clear(); // Clears all tokens and user data
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Account deleted successfully."),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        // 3. Navigate to Login (Remove all back stack)
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const LoginScreen()),
+              (Route<dynamic> route) => false,
         );
       } else {
+        // 4. ERROR (e.g., Wrong Password)
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Invalid password")),
+          SnackBar(
+            content: Text(result['message'] ?? "Deletion failed"),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     } catch (e) {
@@ -49,7 +74,9 @@ class _ReEnterPasswordScreenState extends State<ReEnterPasswordScreen> {
         SnackBar(content: Text("Error: $e")),
       );
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
 
@@ -58,7 +85,6 @@ class _ReEnterPasswordScreenState extends State<ReEnterPasswordScreen> {
     final width = MediaQuery.of(context).size.width;
 
     return Scaffold(
-      // ===== Updated background color to gradient =====
       body: Container(
         decoration: const BoxDecoration(
           gradient: AppColors.backgroundGradient,
@@ -77,7 +103,7 @@ class _ReEnterPasswordScreenState extends State<ReEnterPasswordScreen> {
                         children: [
                           const SizedBox(height: 40),
 
-                          // ===== Updated Logo Style =====
+                          // ===== Logo =====
                           Center(
                             child: Container(
                               width: width * 0.50,
@@ -132,7 +158,7 @@ class _ReEnterPasswordScreenState extends State<ReEnterPasswordScreen> {
                                   ),
                                   const SizedBox(height: 8),
                                   const Text(
-                                    "For your security, please re-enter your password to continue.",
+                                    "To permanently delete your account, please confirm your password.",
                                     style: TextStyle(
                                       color: Colors.grey,
                                       fontSize: 14,
@@ -152,7 +178,8 @@ class _ReEnterPasswordScreenState extends State<ReEnterPasswordScreen> {
                                       ),
                                       focusedBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(12),
-                                        borderSide: BorderSide(color: AppColors.primary),
+                                        borderSide:
+                                        BorderSide(color: AppColors.primary),
                                       ),
                                       prefixIcon: Icon(Icons.lock_outline,
                                           color: AppColors.primary),
@@ -164,7 +191,8 @@ class _ReEnterPasswordScreenState extends State<ReEnterPasswordScreen> {
                                           color: AppColors.primary,
                                         ),
                                         onPressed: () {
-                                          setState(() => isObscure = !isObscure);
+                                          setState(
+                                                  () => isObscure = !isObscure);
                                         },
                                       ),
                                       contentPadding: const EdgeInsets.symmetric(
@@ -174,24 +202,36 @@ class _ReEnterPasswordScreenState extends State<ReEnterPasswordScreen> {
 
                                   const SizedBox(height: 30),
 
-                                  // ===== Confirm Button =====
+                                  // ===== Confirm (Delete) Button =====
                                   SizedBox(
                                     width: double.infinity,
                                     child: ElevatedButton(
-                                      onPressed: isLoading ? null : _confirmPassword,
+                                      onPressed: isLoading
+                                          ? null
+                                          : _handleDeleteAccount,
                                       style: ElevatedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(vertical: 16),
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 16),
                                         shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12),
+                                          borderRadius:
+                                          BorderRadius.circular(12),
                                         ),
-                                        backgroundColor: AppColors.primary,
+                                        backgroundColor: Colors.redAccent, // Red for Delete
                                       ),
                                       child: isLoading
-                                          ? const CircularProgressIndicator(color: Colors.white)
+                                          ? const SizedBox(
+                                        height: 20,
+                                        width: 20,
+                                        child: CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 2),
+                                      )
                                           : const Text(
-                                        "Confirm",
+                                        "Confirm Delete",
                                         style: TextStyle(
-                                            fontSize: 16, color: Colors.white),
+                                            fontSize: 16,
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold),
                                       ),
                                     ),
                                   ),

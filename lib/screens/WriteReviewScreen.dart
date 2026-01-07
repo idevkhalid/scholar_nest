@@ -1,5 +1,19 @@
+import 'dart:ui'; // Required for ImageFilter
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+
+// --- COLOR CONSTANTS (Merged for consistency) ---
+class AppColors {
+  static const Color primary = Color(0xFF1B3C53);
+  static const LinearGradient backgroundGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [
+      Color(0x9977A9FF), // Light Blue-ish top
+      Colors.white,      // White bottom
+    ],
+  );
+}
 
 class WriteReviewScreen extends StatefulWidget {
   final int consultantId;
@@ -49,152 +63,200 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Define your primary color manually if AppColors is not available
-    const primaryColor = Color(0xFF1B3C53);
+    // Get status bar height
+    final double topPadding = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          // ---------------------------------------------
-          // COMPACT HEADER (Single Row, Short Height)
-          // ---------------------------------------------
-          Container(
-            width: double.infinity,
-            // Reduced padding: Top 45 (for status bar), Bottom 15 (compact)
-            padding: const EdgeInsets.only(top: 45, left: 15, right: 15, bottom: 15),
-            decoration: BoxDecoration(
-              color: primaryColor.withOpacity(0.3), // Requested Color
+      // 1. EXTEND BODY BEHIND APP BAR (Crucial for gradient to go to top)
+      extendBodyBehindAppBar: true,
+      body: Container(
+        // 2. BACKGROUND GRADIENT
+        decoration: const BoxDecoration(
+          gradient: AppColors.backgroundGradient,
+        ),
+        child: Column(
+          children: [
+            // ---------------- GLASS HEADER ----------------
+            ClipRRect(
               borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(20), // Smaller radius for compact look
-                bottomRight: Radius.circular(20),
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
               ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center, // Vertically Center
-              children: [
-                // Back Button
-                InkWell(
-                  onTap: () => Navigator.pop(context),
-                  child: const Padding(
-                    padding: EdgeInsets.all(5.0), // Hit area
-                    child: Icon(Icons.arrow_back, color: Colors.white, size: 24),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.only(
+                    top: topPadding + 15, // Space for status bar
+                    bottom: 20,
+                    left: 20,
+                    right: 20,
                   ),
-                ),
-
-                // Title (Expanded ensures it takes up the remaining space)
-                const Expanded(
-                  child: Text(
-                    "Write Your Review",
-                    textAlign: TextAlign.center, // Center text horizontally
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 0.5,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withOpacity(0.3), // Requested transparency
+                    borderRadius: const BorderRadius.only(
+                      bottomLeft: Radius.circular(30),
+                      bottomRight: Radius.circular(30),
+                    ),
+                    border: Border.all(
+                      color: Colors.white.withOpacity(0.25), // Subtle border
                     ),
                   ),
-                ),
-
-                // Invisible box to balance the Row so text stays perfectly centered
-                const SizedBox(width: 34),
-              ],
-            ),
-          ),
-
-          // ---------------------------------------------
-          // FORM BODY
-          // ---------------------------------------------
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 10),
-                  const Text(
-                    "Rate your experience",
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: primaryColor
-                    ),
-                  ),
-                  const SizedBox(height: 15),
-
-                  // Star Rating Selector
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(5, (index) {
-                      return IconButton(
-                        onPressed: () => setState(() => _rating = index + 1),
-                        icon: Icon(
-                          index < _rating ? Icons.star : Icons.star_border,
-                          color: Colors.orange,
-                          size: 40,
-                        ),
-                      );
-                    }),
-                  ),
-
-                  const SizedBox(height: 30),
-                  const Text(
-                    "Your Comment",
-                    style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: primaryColor
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  // Comment Box
-                  TextField(
-                    controller: _commentController,
-                    maxLines: 5,
-                    decoration: InputDecoration(
-                      hintText: "Share your experience...",
-                      hintStyle: TextStyle(color: Colors.grey[400]),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(15),
-                        borderSide: BorderSide.none,
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey[100],
-                      contentPadding: const EdgeInsets.all(15),
-                    ),
-                  ),
-
-                  const SizedBox(height: 40),
-
-                  // Submit Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50, // Slightly smaller button
-                    child: ElevatedButton(
-                      onPressed: _isSubmitting ? null : _submit,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryColor,
-                        foregroundColor: Colors.white,
-                        elevation: 1,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Back Button
+                      InkWell(
+                        onTap: () => Navigator.pop(context),
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          padding: const EdgeInsets.all(8),
+                          child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
                         ),
                       ),
-                      child: _isSubmitting
-                          ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                      )
-                          : const Text("Submit Review", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    ),
+
+                      // Title
+                      const Text(
+                        "Write Your Review",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+
+                      // Invisible Spacer to balance the layout
+                      const SizedBox(width: 40),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
-          ),
-        ],
+
+            // ---------------- FORM BODY ----------------
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  children: [
+                    const SizedBox(height: 20),
+
+                    // CARD CONTAINER FOR FORM
+                    Container(
+                      padding: const EdgeInsets.all(25),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.9), // Slight transparency for glass effect
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withOpacity(0.08),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // RATING SECTION
+                          const Center(
+                            child: Text(
+                              "How was your experience?",
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 15),
+
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(5, (index) {
+                              return GestureDetector(
+                                onTap: () => setState(() => _rating = index + 1),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                                  child: Icon(
+                                    index < _rating ? Icons.star_rounded : Icons.star_outline_rounded,
+                                    color: Colors.amber,
+                                    size: 42,
+                                  ),
+                                ),
+                              );
+                            }),
+                          ),
+
+                          const SizedBox(height: 30),
+
+                          // COMMENT LABEL
+                          const Text(
+                            "Your Feedback",
+                            style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+
+                          // TEXT FIELD
+                          TextField(
+                            controller: _commentController,
+                            maxLines: 6,
+                            style: const TextStyle(color: AppColors.primary),
+                            decoration: InputDecoration(
+                              hintText: "Share details about your consultation...",
+                              hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(15),
+                                borderSide: BorderSide.none,
+                              ),
+                              filled: true,
+                              fillColor: AppColors.primary.withOpacity(0.05),
+                              contentPadding: const EdgeInsets.all(15),
+                            ),
+                          ),
+
+                          const SizedBox(height: 30),
+
+                          // SUBMIT BUTTON
+                          SizedBox(
+                            width: double.infinity,
+                            height: 55,
+                            child: ElevatedButton(
+                              onPressed: _isSubmitting ? null : _submit,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.primary,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(15),
+                                ),
+                              ),
+                              child: _isSubmitting
+                                  ? const SizedBox(
+                                  height: 24,
+                                  width: 24,
+                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
+                              )
+                                  : const Text(
+                                  "Submit Review",
+                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

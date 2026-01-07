@@ -626,24 +626,37 @@ class ApiService {
   // 14. GET USER PROFILE
   // ---------------------------------------------------------
   static Future<Map<String, dynamic>> getUserProfile() async {
+    // Ensure this matches your variable name (baseUrl or mainBaseUrl)
     final url = Uri.parse('$mainBaseUrl/user/profile');
+
     try {
       final headers = await _getHeaders();
       final response = await http.get(url, headers: headers);
+
+      // DEBUG LOG: See what the server actually sends
+      print("PROFILE API: ${response.statusCode} - ${response.body}");
+
       final data = jsonDecode(response.body);
 
-      if (response.statusCode == 200 && data['status'] == 'success') {
+      if (response.statusCode == 200) {
+        // Safe check: ensure 'profile' exists, otherwise send empty map
+        final profileData = data['profile'] ?? data['data'] ?? {};
+
         return {
           "status": "success",
-          "data": data['profile'],
+          "data": profileData,
           "completion": data['completion_percentage'] ?? 0,
           "missing": data['missing_fields'] ?? []
         };
       } else {
-        return {"status": "error", "message": "Failed to load profile"};
+        return {
+          "status": "error",
+          "message": data['message'] ?? "Failed to load profile"
+        };
       }
     } catch (e) {
-      return {"status": "error", "message": "Connection error"};
+      print("PROFILE ERROR: $e");
+      return {"status": "error", "message": "Connection error: $e"};
     }
   }
 
@@ -738,4 +751,87 @@ class ApiService {
       return {"success": false, "message": "Network Error: $e"};
     }
   }
-}
+  // --- DELETE ACCOUNT ---
+  static Future<Map<String, dynamic>> deleteAccount(String password) async {
+    // URL: https://scholarnest.codessol.com/api/auth/delete-account
+    final url = Uri.parse('$authBaseUrl/delete-account');
+
+    try {
+      final headers = await _getHeaders();
+
+      // The http.delete method supports a body, which is required by your API
+      final response = await http.delete(
+        url,
+        headers: headers,
+        body: jsonEncode({
+          "password": password
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return {
+          "status": "success",
+          "message": data["message"] ?? "Account deleted successfully."
+        };
+      } else if (response.statusCode == 401) {
+        return {
+          "status": "error",
+          "message": "Invalid password. Please try again."
+        };
+      } else {
+        return {
+          "status": "error",
+          "message": data["message"] ?? "Failed to delete account."
+        };
+      }
+    } catch (e) {
+      return {"status": "error", "message": "Connection error: $e"};
+    }
+  }
+  // 3. RESTORE ACCOUNT
+  static Future<Map<String, dynamic>> restoreAccount({
+    required String email,
+    required String password,
+  }) async {
+    // This uses a public endpoint, so we don't need _getHeaders() (No token needed)
+    try {
+      final response = await http.post(
+        Uri.parse('$authBaseUrl/restore-account'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          "email": email,
+          "password": password,
+        }),
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return {
+          'status': 'success',
+          'message': data['message'] ?? 'Account restored successfully'
+        };
+      }
+      else if (response.statusCode == 410) {
+        return {
+          'status': 'error',
+          'message': data['message'] ??
+              'Account permanently deleted. Cannot restore.'
+        };
+      }
+      else {
+        return {
+          'status': 'error',
+          'message': data['message'] ?? 'Restoration failed'
+        };
+      }
+    } catch (e) {
+      return {'status': 'error', 'message': 'Network error: $e'};
+    }
+  }
+  }
