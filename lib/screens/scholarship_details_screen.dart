@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
 import '../screens/provider.dart';
 import 'how_to apply _screen.dart';
@@ -16,6 +18,9 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
   Map<String, dynamic>? scholarshipData;
   bool isLoading = true;
   bool isApplying = false;
+
+  // State for the save button
+  bool isSaved = false;
   String? errorMessage;
 
   @override
@@ -31,11 +36,15 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
       setState(() {
         if (response['status'] == 'success') {
           scholarshipData = response['data'];
+
+          // Check if already saved from API response meta data
+          if (response['meta'] != null) {
+            isSaved = response['meta']['is_saved'] ?? false;
+          }
         } else {
           // Fallback data
           scholarshipData = {
             "title": "Global Excellence Scholarship",
-            "university": "Harvard University",
             "country": "USA",
             "category": "Merit-based",
             "degree_level": "Master's Degree",
@@ -44,11 +53,9 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
             "currency": "USD",
             "description": "This is a prestigious scholarship...",
             "detailed_description": "Includes full tuition waiver...",
-            "eligibility_criteria": ["Minimum GPA of 3.8", "IELTS 7.5+"],
             "consultant": {
               "id": 1,
               "user": {
-                "avatar": "https://i.pravatar.cc/150?u=1",
                 "name": "Dr. Sarah Johnson"
               }
             }
@@ -59,57 +66,133 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
     }
   }
 
-  Future<void> _handleApply() async {
-    final consultantMap = scholarshipData?['consultant'];
-    if (consultantMap == null || consultantMap['id'] == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Consultant information is missing.")),
-      );
-      return;
-    }
-
+  // --- UPDATED SAVE BUTTON LOGIC (TOGGLE) ---
+  Future<void> _toggleSave() async {
+    // 1. Optimistic Update (Change icon immediately)
     setState(() {
-      isApplying = true;
+      isSaved = !isSaved;
     });
 
-    final result = await ApiService.applyForScholarship(
-      consultantId: consultantMap['id'],
-      scholarshipId: widget.scholarshipId,
-    );
+    try {
+      // 2. Get the Token
+      final prefs = await SharedPreferences.getInstance();
+      final String? token = prefs.getString('access_token'); // Ensure your key matches what you use in login
 
-    if (mounted) {
-      setState(() {
-        isApplying = false;
-      });
+      if (token == null || token.isEmpty) {
+        // If no token, revert change and show error
+        if (mounted) {
+          setState(() { isSaved = !isSaved; });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Please login to save scholarships.")),
+          );
+        }
+        return;
+      }
 
-      if (result['success'] == true) {
-        showDialog(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-            title: const Row(
-              children: [
-                Icon(Icons.check_circle, color: Colors.green),
-                SizedBox(width: 10),
-                Text("Success"),
+      // 3. Call the new TOGGLE API
+      final result = await ApiService.toggleSaveScholarship(widget.scholarshipId, token);
+
+      // 4. Check for success (API returns 'status': 'success' or just data)
+      final bool isSuccess = result['status'] == 'success' || result['success'] == true;
+
+      if (!isSuccess) {
+        // If server returned error, revert the icon
+        if (mounted) {
+          setState(() { isSaved = !isSaved; });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(result['message'] ?? "Failed to update save status")),
+          );
+        }
+      }
+    } catch (e) {
+      // If network error, revert the icon
+      if (mounted) {
+        setState(() { isSaved = !isSaved; });
+        // Optional: print(e);
+      }
+    }
+  }
+
+  // --- APPLY BUTTON LOGIC ---
+  Future<void> _handleApply() async {
+    if (scholarshipData == null) return;
+
+    final int? consultantId = scholarshipData?['consultant_id'] ??
+        scholarshipData?['consultant']?['id'];
+
+    final String? applyLink = scholarshipData?['apply_link'];
+    final String? officialWebsite = scholarshipData?['official_website'];
+
+    // CASE 1: Internal Consultant Application
+    if (consultantId != null) {
+      setState(() { isApplying = true; });
+
+      final result = await ApiService.applyForScholarship(
+        consultantId: consultantId,
+        scholarshipId: widget.scholarshipId,
+      );
+
+      if (mounted) {
+        setState(() { isApplying = false; });
+
+        if (result['success'] == true) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              title: const Row(
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green),
+                  SizedBox(width: 10),
+                  Text("Success"),
+                ],
+              ),
+              content: Text(result['message'] ?? "Application submitted successfully!"),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text("OK", style: TextStyle(color: ScreenColors.primary)),
+                )
               ],
             ),
-            content: Text(result['message'] ?? "Application submitted successfully!"),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text("OK", style: TextStyle(color: ScreenColors.primary)),
-              )
-            ],
-          ),
-        );
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result['message'] ?? "Failed to apply."),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+      }
+    }
+    // CASE 2: External Link Application
+    else {
+      final String targetUrl = (applyLink != null && applyLink.isNotEmpty)
+          ? applyLink
+          : (officialWebsite ?? "");
+
+      if (targetUrl.isNotEmpty) {
+        final Uri url = Uri.parse(targetUrl);
+        try {
+          if (await canLaunchUrl(url)) {
+            await launchUrl(url, mode: LaunchMode.externalApplication);
+          } else {
+            throw 'Could not launch';
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Could not open application link")),
+            );
+          }
+        }
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message'] ?? "Failed to apply."),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("No application link available")),
+          );
+        }
       }
     }
   }
@@ -166,44 +249,45 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
                     ),
                     const SizedBox(height: 12),
 
-                    // --- SCHOLARSHIP PROVIDER CARD (FIXED) ---
-                    _buildDropdownCard(
-                      title: "Scholarship Provider",
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(left: 16, bottom: 10),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: GestureDetector(
-                              onTap: scholarshipData?['consultant'] == null
-                                  ? null
-                                  : () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => ConsultantProfileScreen(
-                                      consultantId: scholarshipData!['consultant']['id'],
-                                    ),
+                    // --- SCHOLARSHIP PROVIDER CARD ---
+                    if (scholarshipData?['consultant'] != null)
+                      _buildDropdownCard(
+                        title: "Scholarship Provider",
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(left: 16, bottom: 10),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: GestureDetector(
+                                onTap: () {
+                                  final cId = scholarshipData!['consultant']['id'];
+                                  if (cId != null) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => ConsultantProfileScreen(
+                                          consultantId: cId,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                                child: Text(
+                                  scholarshipData?['consultant']?['user']?['name'] ??
+                                      scholarshipData?['consultant']?['name'] ??
+                                      "View Provider Profile",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: ScreenColors.primary,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: ScreenColors.primary,
                                   ),
-                                );
-                              },
-                              child: Text(
-                                // FIX: Check both locations for the name
-                                scholarshipData?['consultant']?['user']?['name'] ??
-                                    scholarshipData?['consultant']?['name'] ??
-                                    "Not Available",
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  color: ScreenColors.primary,
-                                  decoration: TextDecoration.underline,
-                                  decorationColor: ScreenColors.primary,
                                 ),
                               ),
                             ),
-                          ),
-                        )
-                      ],
-                    ),
+                          )
+                        ],
+                      ),
 
                     const SizedBox(height: 16),
                     _buildEligibilityCard(),
@@ -222,10 +306,6 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
   // --- Helper Widgets ---
 
   Widget _buildTopInfoCard() {
-    // FIX: Get avatar from either nested user object OR direct consultant object
-    final avatarUrl = scholarshipData?['consultant']?['user']?['avatar'] ??
-        scholarshipData?['consultant']?['avatar'];
-
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -256,29 +336,19 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
               ],
             ),
           ),
+          // Right side only contains the Bookmark Icon
           Column(
             children: [
-              const Align(
+              Align(
                 alignment: Alignment.centerRight,
-                child: Icon(Icons.bookmark_border, color: Colors.grey),
-              ),
-              const SizedBox(height: 10),
-              Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  shape: BoxShape.circle,
-                  image: avatarUrl != null
-                      ? DecorationImage(
-                    image: NetworkImage(avatarUrl),
-                    fit: BoxFit.cover,
-                  )
-                      : null,
+                child: IconButton(
+                  onPressed: _toggleSave,
+                  icon: Icon(
+                    isSaved ? Icons.bookmark : Icons.bookmark_border,
+                    color: isSaved ? ScreenColors.primary : Colors.grey,
+                    size: 28,
+                  ),
                 ),
-                child: avatarUrl == null
-                    ? const Icon(Icons.person, color: Colors.white)
-                    : null,
               ),
             ],
           )
@@ -390,7 +460,8 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
             ),
           ),
           const SizedBox(height: 8),
-          if (scholarshipData?['eligibility_criteria'] != null)
+          if (scholarshipData?['eligibility_criteria'] != null &&
+              scholarshipData!['eligibility_criteria'] is List)
             ...(scholarshipData!['eligibility_criteria'] as List).map((item) {
               return _buildBulletPoint(item.toString());
             }).toList()
