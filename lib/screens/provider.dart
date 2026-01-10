@@ -4,7 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
 import 'WriteReviewScreen.dart';
 
-// --- YOUR COLOR FILE (Merged for context) ---
+// --- YOUR COLOR FILE (Keep as is) ---
 class AppColors {
   static const Color primary = Color(0xFF1B3C53);
   static const Color background = Color(0xFFEAF1F8);
@@ -12,13 +12,12 @@ class AppColors {
   static const Color textSecondary = Color(0xFF7B7B7B);
   static const Color cardBackground = Colors.white;
 
-  // Exact Gradient from your SavedScholarshipsScreen
   static const LinearGradient backgroundGradient = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
     colors: [
-      Color(0x9977A9FF), // Light Blue-ish
-      Colors.white,      // White at bottom
+      Color(0x9977A9FF),
+      Colors.white,
     ],
   );
 }
@@ -69,6 +68,28 @@ class _ConsultantProfileScreenState extends State<ConsultantProfileScreen> {
     }
   }
 
+  Future<void> _sendEmail(String email) async {
+    if (email.isEmpty) return;
+
+    final Uri emailLaunchUri = Uri(
+      scheme: 'mailto',
+      path: email,
+      query: 'subject=Consultation Inquiry', // Optional: Adds a default subject line
+    );
+
+    try {
+      // try launching directly
+      await launchUrl(emailLaunchUri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      // If that fails, try the generic check
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Could not open email client: $e")),
+        );
+      }
+    }
+  }
+
   String _getInitials(String name) {
     List<String> parts = name.trim().split(" ");
     if (parts.length > 1) {
@@ -81,20 +102,17 @@ class _ConsultantProfileScreenState extends State<ConsultantProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Get Top Padding for Status Bar
     final double topPadding = MediaQuery.of(context).padding.top;
-    // Calculate header height to push content down (Top padding + content height + bottom padding)
     final double headerHeight = topPadding + 15 + 30 + 20;
 
     return Scaffold(
       body: Container(
-        // 1. EXACT BACKGROUND GRADIENT
         decoration: const BoxDecoration(
           gradient: AppColors.backgroundGradient,
         ),
         child: Stack(
           children: [
-            // --- 2. SCROLLABLE BODY ---
+            // --- SCROLLABLE BODY ---
             FutureBuilder<Map<String, dynamic>>(
               future: _consultantFuture,
               builder: (context, snapshot) {
@@ -110,13 +128,27 @@ class _ConsultantProfileScreenState extends State<ConsultantProfileScreen> {
                   return Center(child: Text("Failed: ${responseData?['message'] ?? 'Unknown Error'}"));
                 }
 
+                // --- DATA MAPPING (UPDATED FOR NEW API) ---
                 final data = responseData["data"] ?? {};
                 final user = data["user"] ?? {};
-                final String name = user["name"] ?? "Consultant";
+
+                // Name & Identity
+                final String fName = user["f_name"] ?? "";
+                final String lName = user["l_name"] ?? "";
+                final String fullName = "$fName $lName".trim().isEmpty ? "Consultant" : "$fName $lName";
                 final String title = data["professional_title"] ?? "Professional Consultant";
+
+                // Contact
                 final String phone = data["phone"] ?? user["phone"] ?? "";
+                final String email = user["email"] ?? "";
                 final String website = data["company_website"] ?? "";
 
+                // Stats
+                final num rating = num.tryParse(data["average_rating"].toString()) ?? 0.0;
+                final int totalReviews = int.tryParse(data["total_reviews"].toString()) ?? 0;
+                final int yearsExp = int.tryParse(data["years_experience"].toString()) ?? 0;
+
+                // Address
                 String address = [
                   data["street_address"],
                   data["city"],
@@ -127,7 +159,7 @@ class _ConsultantProfileScreenState extends State<ConsultantProfileScreen> {
                 return SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
                   padding: EdgeInsets.only(
-                      top: headerHeight + 20, // Push content below the fixed header
+                      top: headerHeight + 20,
                       left: 20,
                       right: 20,
                       bottom: 40
@@ -147,8 +179,9 @@ class _ConsultantProfileScreenState extends State<ConsultantProfileScreen> {
                           child: CircleAvatar(
                             radius: 55,
                             backgroundColor: AppColors.primary,
+                            // You can add data['user']['avatar'] logic here if API returns an image URL
                             child: Text(
-                              _getInitials(name),
+                              _getInitials(fullName),
                               style: const TextStyle(fontSize: 34, fontWeight: FontWeight.bold, color: Colors.white),
                             ),
                           ),
@@ -158,7 +191,7 @@ class _ConsultantProfileScreenState extends State<ConsultantProfileScreen> {
                       const SizedBox(height: 15),
 
                       // Name & Title
-                      Text(name,
+                      Text(fullName,
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                               fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
@@ -168,30 +201,55 @@ class _ConsultantProfileScreenState extends State<ConsultantProfileScreen> {
                           style: const TextStyle(
                               fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
 
+                      const SizedBox(height: 20),
+
+                      // --- NEW: QUICK STATS ROW ---
+                      _buildStatsRow(yearsExp, rating, totalReviews),
+
                       const SizedBox(height: 25),
 
-                      // Contact Buttons
+                      // --- UPDATED: Contact Buttons (Call, Email, Web) ---
                       Row(
                         children: [
                           if (phone.isNotEmpty)
                             Expanded(child: _buildContactButton(Icons.call, "Call", phone, () => _makePhoneCall(phone))),
-                          if (phone.isNotEmpty && website.isNotEmpty)
-                            const SizedBox(width: 15),
+                          if (phone.isNotEmpty && (email.isNotEmpty || website.isNotEmpty))
+                            const SizedBox(width: 10),
+                          if (email.isNotEmpty)
+                            Expanded(child: _buildContactButton(Icons.email, "Email", "Send Mail", () => _sendEmail(email))),
+                          if (email.isNotEmpty && website.isNotEmpty)
+                            const SizedBox(width: 10),
                           if (website.isNotEmpty && website != "Not available")
-                            Expanded(child: _buildContactButton(Icons.language, "Website", "Visit Link", () => _launchUrl(website))),
+                            Expanded(child: _buildContactButton(Icons.language, "Website", "Visit", () => _launchUrl(website))),
                         ],
                       ),
 
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 20),
+
+                      // --- NEW: SOCIAL MEDIA LINKS ---
+                      _buildSocialMediaSection(data),
+
+                      const SizedBox(height: 20),
 
                       // Details Sections
-                      _buildDetailSection("About", data["experience_summary"]),
+                      _buildDetailSection("About", data["bio"] ?? data["experience_summary"]),
+
+                      // --- NEW: Availability Section ---
+                      _buildAvailabilitySection(data["working_hours"], data["is_available_for_consultation"]),
+
                       if (address.isNotEmpty) _buildLocationSection(address),
-                      _buildExpertiseSection(data["specializations"], data["qualifications"]),
+
+                      // --- UPDATED: Expertise (Now includes Countries & Languages) ---
+                      _buildExpertiseSection(
+                          specializations: data["specializations"],
+                          qualifications: data["qualifications"],
+                          countries: data["expertise_countries"],
+                          languages: data["languages"]
+                      ),
 
                       const SizedBox(height: 10),
 
-                      // Reviews
+                      // Reviews Widget (Kept from your code)
                       ReviewsListWidget(consultantId: widget.consultantId),
                     ],
                   ),
@@ -199,7 +257,7 @@ class _ConsultantProfileScreenState extends State<ConsultantProfileScreen> {
               },
             ),
 
-            // --- 3. EXACT GLASS HEADER (Fixed at Top) ---
+            // --- GLASS HEADER (Fixed) ---
             Positioned(
               top: 0,
               left: 0,
@@ -220,14 +278,12 @@ class _ConsultantProfileScreenState extends State<ConsultantProfileScreen> {
                       right: 20,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.3), // Matches your provided screen
+                      color: AppColors.primary.withOpacity(0.3),
                       borderRadius: const BorderRadius.only(
                         bottomLeft: Radius.circular(30),
                         bottomRight: Radius.circular(30),
                       ),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.25),
-                      ),
+                      border: Border.all(color: Colors.white.withOpacity(0.25)),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -246,7 +302,6 @@ class _ConsultantProfileScreenState extends State<ConsultantProfileScreen> {
                             fontWeight: FontWeight.bold,
                           ),
                         ),
-                        // Empty SizedBox to balance the title centering
                         const SizedBox(width: 20),
                       ],
                     ),
@@ -262,18 +317,95 @@ class _ConsultantProfileScreenState extends State<ConsultantProfileScreen> {
 
   // --- WIDGET HELPERS ---
 
+  // 1. New Stats Row Helper
+  Widget _buildStatsRow(int years, num rating, int reviews) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 15),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: [
+          _buildSingleStat("$years Yrs", "Experience"),
+          Container(height: 30, width: 1, color: Colors.grey.shade300),
+          _buildSingleStat(rating.toStringAsFixed(1), "Rating", icon: Icons.star, iconColor: Colors.amber),
+          Container(height: 30, width: 1, color: Colors.grey.shade300),
+          _buildSingleStat("$reviews", "Reviews"),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSingleStat(String value, String label, {IconData? icon, Color? iconColor}) {
+    return Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+            if (icon != null) ...[
+              const SizedBox(width: 4),
+              Icon(icon, size: 16, color: iconColor)
+            ]
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+      ],
+    );
+  }
+
+  // 2. Updated Social Media Helper
+  Widget _buildSocialMediaSection(Map<String, dynamic> data) {
+    List<Widget> socialButtons = [];
+
+    void addBtn(String? url, IconData icon, Color bg) {
+      if (url != null && url.isNotEmpty) {
+        socialButtons.add(InkWell(
+          onTap: () => _launchUrl(url),
+          child: Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: bg.withOpacity(0.1), shape: BoxShape.circle),
+            child: Icon(icon, color: bg, size: 22),
+          ),
+        ));
+      }
+    }
+
+    addBtn(data['linkedin_profile'], Icons.link, const Color(0xFF0077B5)); // LinkedIn Blue
+    addBtn(data['twitter_profile'], Icons.alternate_email, const Color(0xFF1DA1F2)); // Twitter Blue
+    addBtn(data['facebook_profile'], Icons.facebook, const Color(0xFF4267B2)); // FB Blue
+
+    // Portfolios
+    if (data['portfolio_links'] != null && (data['portfolio_links'] as List).isNotEmpty) {
+      addBtn(data['portfolio_links'][0], Icons.work_outline, Colors.orange);
+    }
+
+    if (socialButtons.isEmpty) return const SizedBox.shrink();
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        ...socialButtons.expand((widget) => [widget, const SizedBox(width: 15)]).toList()..removeLast(),
+      ],
+    );
+  }
+
   Widget _buildContactButton(IconData icon, String label, String value, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(15),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(15),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
         ),
-        child: Row(
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
@@ -281,17 +413,8 @@ class _ConsultantProfileScreenState extends State<ConsultantProfileScreen> {
               decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), shape: BoxShape.circle),
               child: Icon(icon, color: AppColors.primary, size: 18),
             ),
-            const SizedBox(width: 12),
-            Flexible(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label.toUpperCase(), style: const TextStyle(fontSize: 10, color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 2),
-                  Text(value, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                ],
-              ),
-            ),
+            const SizedBox(height: 8),
+            Text(label.toUpperCase(), style: const TextStyle(fontSize: 10, color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
           ],
         ),
       ),
@@ -311,6 +434,52 @@ class _ConsultantProfileScreenState extends State<ConsultantProfileScreen> {
       ),
       const SizedBox(height: 25),
     ]);
+  }
+
+  // 3. New Availability & Hours Section
+  Widget _buildAvailabilitySection(Map<String, dynamic>? hours, bool? isAvailable) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text("Availability", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                  color: (isAvailable ?? false) ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20)
+              ),
+              child: Text(
+                (isAvailable ?? false) ? "Available Now" : "Unavailable",
+                style: TextStyle(color: (isAvailable ?? false) ? Colors.green : Colors.red, fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+            )
+          ],
+        ),
+        const SizedBox(height: 10),
+        if (hours != null)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.withOpacity(0.1))),
+            child: Column(
+              children: hours.entries.map((e) => Padding(
+                padding: const EdgeInsets.only(bottom: 8.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(e.key.toUpperCase(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+                    Text(e.value.toString(), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+                  ],
+                ),
+              )).toList(),
+            ),
+          ),
+        const SizedBox(height: 25),
+      ],
+    );
   }
 
   Widget _buildLocationSection(String address) {
@@ -333,15 +502,23 @@ class _ConsultantProfileScreenState extends State<ConsultantProfileScreen> {
     ]);
   }
 
-  Widget _buildExpertiseSection(dynamic specs, dynamic quals) {
+  // 4. Updated Expertise (Groups multiple arrays)
+  Widget _buildExpertiseSection({
+    required dynamic specializations,
+    required dynamic qualifications,
+    required dynamic countries,
+    required dynamic languages,
+  }) {
     List<String> items = [];
-    if (specs != null) items.addAll(List<String>.from(specs));
-    if (quals != null) items.addAll(List<String>.from(quals));
+    if (specializations != null) items.addAll(List<String>.from(specializations));
+    if (qualifications != null) items.addAll(List<String>.from(qualifications));
+    if (countries != null) items.addAll(List<String>.from(countries));
+    if (languages != null) items.addAll(List<String>.from(languages));
 
     if (items.isEmpty) return const SizedBox.shrink();
 
     return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text("Expertise", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+      const Text("Expertise & Qualifications", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
       const SizedBox(height: 10),
       Wrap(
         spacing: 10, runSpacing: 10,
@@ -355,6 +532,8 @@ class _ConsultantProfileScreenState extends State<ConsultantProfileScreen> {
     ]);
   }
 }
+
+// ... Keep your existing ReviewsListWidget and _ReviewItem code exactly as it was ...
 
 // ------------------------------------------------------------------
 //  REVIEWS LIST
