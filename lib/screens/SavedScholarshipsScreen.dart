@@ -7,9 +7,14 @@ import '../constants/colors.dart';
 import 'scholarship_details_screen.dart';
 import 'home_screen.dart'; // Make sure this is imported to access ModernScholarshipCard
 
-class SavedScholarshipsScreen extends StatelessWidget {
+class SavedScholarshipsScreen extends StatefulWidget {
   const SavedScholarshipsScreen({super.key});
 
+  @override
+  State<SavedScholarshipsScreen> createState() => _SavedScholarshipsScreenState();
+}
+
+class _SavedScholarshipsScreenState extends State<SavedScholarshipsScreen> {
   @override
   Widget build(BuildContext context) {
     final savedProvider = Provider.of<SavedProvider>(context);

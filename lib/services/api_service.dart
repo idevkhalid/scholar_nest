@@ -525,7 +525,8 @@ class ApiService {
     }
   }
   // ---------------------------------------------------------
-  // 11. GET ALL CONSULTANTS (With Search)
+  // ---------------------------------------------------------
+  // 11. GET ALL CONSULTANTS (Fixed for Pagination)
   // ---------------------------------------------------------
   static Future<Map<String, dynamic>> getAllConsultants({String? query, int page = 1}) async {
     String baseUrl = '$mainBaseUrl/consultants?page=$page';
@@ -536,22 +537,40 @@ class ApiService {
     final url = Uri.parse(baseUrl);
     try {
       final headers = await _getHeaders();
+      print("DEBUG: Fetching consultants from $url");
+
       final response = await http.get(url, headers: headers);
+      print("DEBUG: Response Status: ${response.statusCode}");
+      print("DEBUG: Response Body: ${response.body}"); // <--- Check your console for this!
+
       final data = jsonDecode(response.body);
 
-      if (response.statusCode == 200 && data['status'] == 'success') {
+      if (response.statusCode == 200 && (data['status'] == 'success' || data['success'] == true)) {
+
+        var fetchedData = data['data'];
+        List<dynamic> finalList = [];
+
+        // CHECK 1: Is it a Paginated Response? (Map with a 'data' key inside)
+        if (fetchedData is Map<String, dynamic> && fetchedData.containsKey('data')) {
+          finalList = fetchedData['data'];
+        }
+        // CHECK 2: Is it a direct List?
+        else if (fetchedData is List) {
+          finalList = fetchedData;
+        }
+
         return {
           "status": "success",
-          "data": data['data'] ?? [],
+          "data": finalList,
         };
       } else {
         return {"status": "error", "message": data['message'] ?? "Failed to load"};
       }
     } catch (e) {
+      print("DEBUG: Error in getAllConsultants: $e");
       return {"status": "error", "message": "Connection error"};
     }
   }
-
   // ---------------------------------------------------------
   // 12. GET TOP RATED CONSULTANTS
   // ---------------------------------------------------------

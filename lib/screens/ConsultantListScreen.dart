@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../constants/colors.dart';
 import '../services/api_service.dart';
-import 'provider.dart' hide AppColors; // <--- IMPORT YOUR EXISTING PROVIDER SCREEN HERE
+import 'provider.dart' hide AppColors; // Your ConsultantProfileScreen import
 
 class AllConsultantScreen extends StatefulWidget {
   const AllConsultantScreen({super.key});
@@ -33,13 +33,19 @@ class _AllConsultantScreenState extends State<AllConsultantScreen> {
   // --- API CALLS ---
   void _fetchTopRated() async {
     final response = await ApiService.getTopRatedConsultants();
-    if (mounted && response['status'] == 'success') {
+    if (mounted) {
       setState(() {
-        _topRatedConsultants = response['data'];
+        if (response['status'] == 'success') {
+          // Handle potential pagination or direct list
+          var rawData = response['data'];
+          if (rawData is List) {
+            _topRatedConsultants = rawData;
+          } else if (rawData is Map && rawData['data'] is List) {
+            _topRatedConsultants = rawData['data'];
+          }
+        }
         _isLoadingTop = false;
       });
-    } else {
-      setState(() => _isLoadingTop = false);
     }
   }
 
@@ -50,7 +56,21 @@ class _AllConsultantScreenState extends State<AllConsultantScreen> {
     if (mounted) {
       setState(() {
         if (response['status'] == 'success') {
-          _allConsultants = response['data'];
+          var rawData = response['data'];
+
+          // FIX: Check if it's a direct list OR a paginated map
+          if (rawData is List) {
+            _allConsultants = rawData;
+          } else if (rawData is Map && rawData.containsKey('data')) {
+            // If it is paginated (e.g. { current_page: 1, data: [...] })
+            _allConsultants = rawData['data'];
+          } else {
+            _allConsultants = [];
+          }
+
+          print("DEBUG: Loaded ${_allConsultants.length} consultants.");
+        } else {
+          print("DEBUG: API Error: ${response['message']}");
         }
         _isLoadingAll = false;
       });
@@ -157,15 +177,17 @@ class _AllConsultantScreenState extends State<AllConsultantScreen> {
 
   // --- WIDGET: TOP RATED CARD (Horizontal) ---
   Widget _buildTopRatedCard(Map<String, dynamic> data) {
-    // Note: Top Rated API returns name directly at root, not inside 'user'
-    final String name = data['name'] ?? "Unknown";
-    final String avatar = data['avatar'] ?? "";
-    final String specialization = data['specialization'] ?? "";
-    final double rating = (data['avg_rating'] ?? 0).toDouble();
+    // Safety Logic: Handle both root-level properties and nested 'user' objects
+    final userObj = data['user'];
+    final Map<String, dynamic> user = (userObj is Map<String, dynamic>) ? userObj : {};
+
+    final String name = user['name'] ?? data['name'] ?? "Unknown";
+    final String avatar = user['avatar'] ?? data['avatar'] ?? "";
+    final String specialization = data['specialization'] ?? "Specialist";
+    final double rating = double.tryParse(data['avg_rating']?.toString() ?? "0") ?? 0.0;
 
     return GestureDetector(
       onTap: () {
-        // NAVIGATE TO YOUR PROVIDER SCREEN
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -186,8 +208,9 @@ class _AllConsultantScreenState extends State<AllConsultantScreen> {
           children: [
             CircleAvatar(
               radius: 30,
+              backgroundColor: Colors.grey[200],
               backgroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
-              child: avatar.isEmpty ? const Icon(Icons.person) : null,
+              child: avatar.isEmpty ? const Icon(Icons.person, color: Colors.grey) : null,
             ),
             const SizedBox(height: 8),
             Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
@@ -213,17 +236,22 @@ class _AllConsultantScreenState extends State<AllConsultantScreen> {
 
   // --- WIDGET: ALL CONSULTANTS ROW (Vertical) ---
   Widget _buildConsultantRow(Map<String, dynamic> data) {
-    // Note: All Consultants API returns name inside 'user' object
-    final user = data['user'] ?? {};
-    final String name = user['name'] ?? "Unknown";
-    final String avatar = user['avatar'] ?? "";
-    final String specialization = data['specialization'] ?? "";
-    final double rating = (data['avg_rating'] ?? 0).toDouble();
-    final String hourlyRate = data['hourly_rate']?.toString() ?? "0";
+    // 1. DATA EXTRACTION SAFETY
+    // Check if 'user' key exists and is a Map. If not, fallback to empty map.
+    final userObj = data['user'];
+    final Map<String, dynamic> user = (userObj is Map<String, dynamic>) ? userObj : {};
+
+    // 2. RETRIEVE VALUES (Fallback Priority: User Object -> Root Object -> Default)
+    final String name = user['name'] ?? data['name'] ?? "Consultant";
+    final String avatar = user['avatar'] ?? data['avatar'] ?? "";
+    final String specialization = data['specialization'] ?? "Expert";
+
+    // 3. SAFE PARSING FOR NUMBERS
+    final double rating = double.tryParse(data['avg_rating']?.toString() ?? "0") ?? 0.0;
+    final String hourlyRate = data['hourly_rate']?.toString() ?? "N/A";
 
     return GestureDetector(
       onTap: () {
-        // NAVIGATE TO YOUR PROVIDER SCREEN
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -248,6 +276,7 @@ class _AllConsultantScreenState extends State<AllConsultantScreen> {
               ),
               child: CircleAvatar(
                 radius: 28,
+                backgroundColor: Colors.grey[200],
                 backgroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
                 child: avatar.isEmpty ? const Icon(Icons.person, color: Colors.grey) : null,
               ),
@@ -266,7 +295,9 @@ class _AllConsultantScreenState extends State<AllConsultantScreen> {
                       const Icon(Icons.star, size: 14, color: Colors.amber),
                       Text(" $rating", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                       const Spacer(),
-                      Text("\$$hourlyRate/hr", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green[700], fontSize: 13)),
+                      // Only show rate if it exists
+                      if (hourlyRate != "N/A" && hourlyRate != "null")
+                        Text("\$$hourlyRate/hr", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green[700], fontSize: 13)),
                     ],
                   ),
                 ],
