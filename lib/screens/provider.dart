@@ -20,6 +20,8 @@ class AppColors {
       Colors.white,
     ],
   );
+
+  static Color? get error => null;
 }
 
 class ConsultantProfileScreen extends StatefulWidget {

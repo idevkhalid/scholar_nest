@@ -134,7 +134,7 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     child: Column(
                       children: [
-                        _profileTile(Icons.person, "Profile", () {
+                        _profileTile(Icons.person, "Edit Profile", () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(

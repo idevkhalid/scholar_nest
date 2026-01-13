@@ -347,14 +347,9 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// -------------- OTHER WIDGETS AND CARDS (UNCHANGED) -----------------
+// ------------------ WIDGETS ------------------
 
-
-// -------------- OTHER WIDGETS AND CARDS (UNCHANGED) -----------------
-
-
-// --- WIDGETS AND CARDS REMAIN THE SAME ---
-class FilterChipDropdown extends StatelessWidget {
+class FilterChipDropdown extends StatefulWidget {
   final String value;
   final List<String> items;
   final void Function(String) onChanged;
@@ -368,6 +363,11 @@ class FilterChipDropdown extends StatelessWidget {
     required this.icon,
   });
 
+  @override
+  State<FilterChipDropdown> createState() => _FilterChipDropdownState();
+}
+
+class _FilterChipDropdownState extends State<FilterChipDropdown> {
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -386,10 +386,10 @@ class FilterChipDropdown extends StatelessWidget {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: value,
-          icon: Icon(icon, size: 18, color: AppColors.primary),
-          onChanged: (v) => onChanged(v!),
-          items: items
+          value: widget.value,
+          icon: Icon(widget.icon, size: 18, color: AppColors.primary),
+          onChanged: (v) => widget.onChanged(v!),
+          items: widget.items
               .map((e) => DropdownMenuItem(
             value: e,
             child: Text(e),
@@ -426,8 +426,29 @@ class ModernScholarshipCard extends StatefulWidget {
 class _ModernScholarshipCardState extends State<ModernScholarshipCard> {
   double _scale = 1.0;
 
+  // --- HELPER FUNCTION TO CLEAN DATE ---
+  String _formatDate(String dateString) {
+    if (dateString.isEmpty || dateString == 'No Deadline') return dateString;
+    try {
+      // If it has a space (e.g. 2025-10-10 00:00:00), split and take first part
+      if (dateString.contains(' ')) {
+        return dateString.split(' ')[0];
+      }
+      // If it has a T (e.g. 2025-10-10T00:00:00), split and take first part
+      if (dateString.contains('T')) {
+        return dateString.split('T')[0];
+      }
+      return dateString;
+    } catch (e) {
+      return dateString;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Get the cleaned date
+    final cleanDeadline = _formatDate(widget.deadline);
+
     return GestureDetector(
       onTap: widget.onTap,
       onTapDown: (_) => setState(() => _scale = 0.97),
@@ -474,7 +495,8 @@ class _ModernScholarshipCardState extends State<ModernScholarshipCard> {
                       children: [
                         const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
                         const SizedBox(width: 4),
-                        Text(widget.deadline),
+                        // USE THE CLEAN DATE HERE
+                        Text(cleanDeadline),
                       ],
                     ),
                     Row(

@@ -21,8 +21,6 @@ dependencies:
   font_awesome_flutter: ^10.7.0
   flutter_rating_bar: ^4.0.1
   url_launcher: ^6.3.2
-  
-
 
 dev_dependencies:
   flutter_test:
@@ -30,15 +28,14 @@ dev_dependencies:
   flutter_lints: ^5.0.0
   video_player: ^2.8.2
   intl: ^0.18.1
+  flutter_native_splash: ^2.4.0
+  flutter_launcher_icons: ^0.13.1 # Added for changing App Icon
 
 flutter:
   uses-material-design: true
 
   assets:
-
-
     - assets/logo.jpeg
-
     - assets/images/  # Folder for other images
 
   fonts:
@@ -47,3 +44,23 @@ flutter:
         - asset: assets/fonts/static/Literata-Regular.ttf
         - asset: assets/fonts/static/Literata-Bold.ttf
           weight: 700
+
+# --- 1. SPLASH SCREEN CONFIGURATION ---
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: "assets/logo.jpeg"
+  branding: "assets/logo.jpeg"
+  android_12:
+    image: "assets/logo.jpeg"
+    color: "#FFFFFF"
+  fullscreen: true
+
+# --- 2. APP ICON CONFIGURATION ---
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/logo.jpeg"
+  min_sdk_android: 21
+  # This makes the icon cover the full background on Android:
+  adaptive_icon_background: "assets/logo.jpeg"
+  adaptive_icon_foreground: "assets/logo.jpeg"

@@ -50,6 +50,24 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     _fetchProfileData();
   }
 
+  // --- HELPER TO CLEAN DATE ---
+  String _formatDate(String? dateString) {
+    if (dateString == null || dateString.isEmpty) return "";
+    try {
+      // If it has a space (e.g. 2000-10-10 00:00:00), split and take first part
+      if (dateString.contains(' ')) {
+        return dateString.split(' ')[0];
+      }
+      // If it has a T (e.g. 2000-10-10T00:00:00), split and take first part
+      if (dateString.contains('T')) {
+        return dateString.split('T')[0];
+      }
+      return dateString;
+    } catch (e) {
+      return dateString;
+    }
+  }
+
   // --- 1. FETCH DATA ---
   Future<void> _fetchProfileData() async {
     setState(() => _isLoading = true);
@@ -81,7 +99,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   void _populateFields(Map<String, dynamic> data) {
     _phoneController.text = data['phone'] ?? '';
     _whatsappController.text = data['whatsapp'] ?? '';
-    _dobController.text = data['date_of_birth'] ?? '';
+
+    // --- APPLY DATE FORMATTING HERE ---
+    _dobController.text = _formatDate(data['date_of_birth']);
+
     _nationalityController.text = data['nationality'] ?? 'Pakistani';
 
     String? rawGender = data['gender'];
@@ -112,11 +133,27 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     _githubController.text = data['github_url'] ?? '';
     _portfolioController.text = data['portfolio_url'] ?? '';
 
+    // --- FIX FOR BRACKETS IN SKILLS & LANGUAGES ---
     if (data['skills'] != null) {
-      _skillsController.text = (data['skills'] is List) ? (data['skills'] as List).join(', ') : data['skills'].toString();
+      if (data['skills'] is List) {
+        _skillsController.text = (data['skills'] as List).join(', ');
+      } else {
+        _skillsController.text = data['skills'].toString()
+            .replaceAll('[', '')
+            .replaceAll(']', '')
+            .replaceAll('"', '');
+      }
     }
+
     if (data['languages'] != null) {
-      _languagesController.text = (data['languages'] is List) ? (data['languages'] as List).join(', ') : data['languages'].toString();
+      if (data['languages'] is List) {
+        _languagesController.text = (data['languages'] as List).join(', ');
+      } else {
+        _languagesController.text = data['languages'].toString()
+            .replaceAll('[', '')
+            .replaceAll(']', '')
+            .replaceAll('"', '');
+      }
     }
   }
 
