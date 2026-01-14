@@ -68,7 +68,7 @@ class _AboutUsScreenState extends State<AboutUsScreen> {
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(20, 100, 20, 50), // Top padding for status bar
               decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: .6),
+                color: AppColors.primary.withOpacity(0.6),
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(30),
                   bottomRight: Radius.circular(30),
@@ -174,11 +174,37 @@ class _AboutUsScreenState extends State<AboutUsScreen> {
               ),
             ),
 
+            // --- COMPANY / DEVELOPER INFO ---
             const SizedBox(height: 20),
-            Text(
-              "© 2026 ScholarNest Inc.",
-              style: TextStyle(color: Colors.grey.shade400, fontSize: 12),
+            Column(
+              children: [
+                Text(
+                  "Developed by",
+                  style: TextStyle(
+                    color: Colors.grey.shade500,
+                    fontSize: 11,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                // 👇 UPDATED COMPANY NAME
+                const Text(
+                  "Codes Solution (PVT) LTD",
+                  style: TextStyle(
+                    color: darkPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Text(
+                  "© 2026 All Rights Reserved",
+                  style: TextStyle(color: Colors.grey.shade400, fontSize: 11),
+                ),
+              ],
             ),
+            const SizedBox(height: 30),
           ],
         ),
       ),
