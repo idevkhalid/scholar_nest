@@ -22,6 +22,7 @@ dependencies:
   flutter_rating_bar: ^4.0.1
   url_launcher: ^6.3.2
   applovin_max: any
+  flutter_cached_pdfview: ^0.4.3
 
 dev_dependencies:
   flutter_test:
@@ -30,14 +31,14 @@ dev_dependencies:
   video_player: ^2.8.2
   intl: ^0.18.1
   flutter_native_splash: ^2.4.0
-  flutter_launcher_icons: ^0.13.1 # Added for changing App Icon
+  flutter_launcher_icons: ^0.13.1
 
 flutter:
   uses-material-design: true
 
   assets:
     - assets/logo.jpeg
-    - assets/images/  # Folder for other images
+    - assets/images/
 
   fonts:
     - family: Literata
@@ -47,21 +48,22 @@ flutter:
           weight: 700
 
 # --- 1. SPLASH SCREEN CONFIGURATION ---
+# This creates the launch screen
 flutter_native_splash:
   color: "#FFFFFF"
   image: "assets/logo.jpeg"
-  branding: "assets/logo.jpeg"
+  # branding: "assets/logo.jpeg"  <-- REMOVED (Prevents double logo issue)
   android_12:
     image: "assets/logo.jpeg"
     color: "#FFFFFF"
   fullscreen: true
 
 # --- 2. APP ICON CONFIGURATION ---
+# This changes the icon on your home screen
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
   image_path: "assets/logo.jpeg"
   min_sdk_android: 21
-  # This makes the icon cover the full background on Android:
-  adaptive_icon_background: "assets/logo.jpeg"
+  adaptive_icon_background: "#FFFFFF" # Changed to White Color (Safer than using image)
   adaptive_icon_foreground: "assets/logo.jpeg"
