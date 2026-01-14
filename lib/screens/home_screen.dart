@@ -478,6 +478,7 @@ class _ModernScholarshipCardState extends State<ModernScholarshipCard> {
                       child: Text(widget.badge, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     ),
                     IconButton(
+
                       onPressed: widget.onSave,
                       icon: Icon(widget.isSaved ? Icons.bookmark : Icons.bookmark_border, color: const Color(0xFF1B3C53)),
                     ),

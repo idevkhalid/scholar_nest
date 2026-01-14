@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../constants/colors.dart';
+import '../services/ad_service.dart';
 import 'home_screen.dart';
 
 class IntroScreen extends StatefulWidget {
@@ -140,6 +141,8 @@ class _IntroScreenState extends State<IntroScreen>
                         ),
                       ),
                       onPressed: () {
+                        // 1. Call the counter method
+                        AdService().showAdWithCounter();
                         Navigator.pushReplacement(
                           context,
                           MaterialPageRoute(

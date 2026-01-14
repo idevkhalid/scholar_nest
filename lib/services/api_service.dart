@@ -853,4 +853,21 @@ class ApiService {
       return {'status': 'error', 'message': 'Network error: $e'};
     }
   }
+
+  static Future<Map<String, dynamic>> getPublicSettings() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$mainBaseUrl/settings/public'),
+        headers: {"Accept": "application/json"},
+      );
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        return {"success": false, "message": "Failed to load settings"};
+      }
+    } catch (e) {
+      return {"success": false, "message": e.toString()};
+    }
+  }
   }

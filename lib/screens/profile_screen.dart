@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:scholar_nest/screens/privacy_screen.dart';
 import 'package:scholar_nest/screens/user_profile_screen.dart';
 
 import '../providers/auth_provider.dart';
@@ -196,7 +197,15 @@ class ProfileScreen extends StatelessWidget {
                         _divider(),
 
                         _profileTile(
-                            Icons.lock_outline, "Privacy & Security", () {}),
+                            Icons.lock_outline, "Privacy & Security", () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                              const PrivacyPolicyScreen(),
+                            ),
+                          );
+                        }),
                       ],
                     ),
                   ),

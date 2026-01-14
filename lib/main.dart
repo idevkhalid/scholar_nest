@@ -1,12 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:applovin_max/applovin_max.dart';
+
+import 'services/api_service.dart';
+import 'services/ad_service.dart';
+
 import 'screens/splash_screen.dart';
 import 'providers/auth_provider.dart';
 import 'providers/saved_provider.dart';
 import 'providers/filter_provider.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 1. Initialize AppLovin SDK (Replace with your actual SDK Key)
+  await AppLovinMAX.initialize("«sdk-key»");
+
+  // 2. Fetch Settings from API
+  try {
+    final response = await ApiService.getPublicSettings();
+
+    if (response['success'] == true && response['data'] != null) {
+
+      // TODO: When backend gives the key, replace 'interstitial_ad_unit_id' below
+      String adUnitId = response['data']['interstitial_ad_unit_id'] ?? "";
+
+      if (adUnitId.isNotEmpty) {
+        AdService().initialize(adUnitId);
+      } else {
+        print("⚠️ [Main] Ad Unit ID is empty. Ads will not show.");
+      }
+    }
+  } catch (e) {
+    print("❌ [Main] Error fetching settings: $e");
+  }
+
   runApp(const ScholarNestApp());
 }
 

@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:scholar_nest/screens/how_to%20apply%20_screen.dart';
 import '../constants/colors.dart';
+import '../services/ad_service.dart';
 import 'professor_list_screen.dart';
 import 'ConsultantListScreen.dart'; // <--- Import the new screen
 
@@ -80,6 +81,8 @@ class KnowledgeBaseScreen extends StatelessWidget {
                       title: "How to Apply",
                       description: "Watch step-by-step video guidance on how to apply.",
                       onTap: () {
+                        // 1. Call the counter method
+                        AdService().showAdWithCounter();
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -96,6 +99,8 @@ class KnowledgeBaseScreen extends StatelessWidget {
                       title: "Professor List",
                       description: "Find professors who can guide and support you.",
                       onTap: () {
+                        // 1. Call the counter method
+                        AdService().showAdWithCounter();
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -112,6 +117,8 @@ class KnowledgeBaseScreen extends StatelessWidget {
                       title: "Consultants",
                       description: "Connect with experts for personalized guidance.",
                       onTap: () {
+                        // 1. Call the counter method
+                        AdService().showAdWithCounter();
                         Navigator.push(
                           context,
                           MaterialPageRoute(
