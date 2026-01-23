@@ -3,7 +3,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../constants/colors.dart';
 import '../services/api_service.dart';
-import 'provider.dart' hide AppColors; // Your ConsultantProfileScreen import
+import 'provider.dart' hide AppColors; // Your ConsultantProfileScreen
+import '../widgets/modern_text_field.dart';
 
 class AllConsultantScreen extends StatefulWidget {
   const AllConsultantScreen({super.key});
@@ -30,13 +31,19 @@ class _AllConsultantScreenState extends State<AllConsultantScreen> {
     _fetchAllConsultants();
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _debounce?.cancel();
+    super.dispose();
+  }
+
   // --- API CALLS ---
   void _fetchTopRated() async {
     final response = await ApiService.getTopRatedConsultants();
     if (mounted) {
       setState(() {
         if (response['status'] == 'success') {
-          // Handle potential pagination or direct list
           var rawData = response['data'];
           if (rawData is List) {
             _topRatedConsultants = rawData;
@@ -57,27 +64,19 @@ class _AllConsultantScreenState extends State<AllConsultantScreen> {
       setState(() {
         if (response['status'] == 'success') {
           var rawData = response['data'];
-
-          // FIX: Check if it's a direct list OR a paginated map
           if (rawData is List) {
             _allConsultants = rawData;
           } else if (rawData is Map && rawData.containsKey('data')) {
-            // If it is paginated (e.g. { current_page: 1, data: [...] })
             _allConsultants = rawData['data'];
           } else {
             _allConsultants = [];
           }
-
-          print("DEBUG: Loaded ${_allConsultants.length} consultants.");
-        } else {
-          print("DEBUG: API Error: ${response['message']}");
         }
         _isLoadingAll = false;
       });
     }
   }
 
-  // Search Debounce (Wait 500ms after typing stops)
   void _onSearchChanged(String query) {
     if (_debounce?.isActive ?? false) _debounce!.cancel();
     _debounce = Timer(const Duration(milliseconds: 500), () {
@@ -86,27 +85,26 @@ class _AllConsultantScreenState extends State<AllConsultantScreen> {
   }
 
   @override
-  void dispose() {
-    _searchController.dispose();
-    _debounce?.cancel();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final double topPadding = MediaQuery.of(context).padding.top;
 
+    // Check Theme Status
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final textColor = isDarkMode ? Colors.white : const Color(0xFF2D3142);
+
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppColors.backgroundGradient,
+        decoration: BoxDecoration(
+          // Gradient for Light Mode, Solid Color for Dark Mode
+          gradient: isDarkMode ? null : AppColors.backgroundGradient,
+          color: isDarkMode ? Theme.of(context).scaffoldBackgroundColor : null,
         ),
         child: Column(
           children: [
-            // --- 1. GLASS HEADER WITH SEARCH ---
-            _buildGlassHeader(topPadding),
+            // --- HEADER ---
+            _buildGlassHeader(topPadding, isDarkMode),
 
-            // --- 2. SCROLLABLE BODY ---
+            // --- BODY ---
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.only(top: 20, bottom: 30),
@@ -118,29 +116,28 @@ class _AllConsultantScreenState extends State<AllConsultantScreen> {
                     if (!_isLoadingTop && _topRatedConsultants.isNotEmpty && _searchController.text.isEmpty) ...[
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                        child: Row(
-                          children: [
-                            Icon(Icons.stars, color: Colors.amber[700]),
-                            const SizedBox(width: 8),
-                            const Text(
-                              "Top Rated Experts",
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                            ),
-                          ],
+                        child: Text(
+                          "Top Rated Experts",
+                          style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Poppins',
+                              color: textColor
+                          ),
                         ),
                       ),
                       SizedBox(
-                        height: 180,
+                        height: 200,
                         child: ListView.builder(
                           scrollDirection: Axis.horizontal,
                           padding: const EdgeInsets.only(left: 20, right: 10),
                           itemCount: _topRatedConsultants.length,
                           itemBuilder: (context, index) {
-                            return _buildTopRatedCard(_topRatedConsultants[index]);
+                            return _buildTopRatedCard(_topRatedConsultants[index], isDarkMode, textColor);
                           },
                         ),
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 25),
                     ],
 
                     // --- ALL CONSULTANTS SECTION ---
@@ -148,21 +145,26 @@ class _AllConsultantScreenState extends State<AllConsultantScreen> {
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                       child: Text(
                         "All Consultants",
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.primary),
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'Poppins',
+                            color: textColor
+                        ),
                       ),
                     ),
 
                     _isLoadingAll
-                        ? const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()))
+                        ? const Center(child: Padding(padding: EdgeInsets.all(40), child: CircularProgressIndicator()))
                         : _allConsultants.isEmpty
-                        ? const Center(child: Padding(padding: EdgeInsets.all(30), child: Text("No consultants found")))
+                        ? Center(child: Padding(padding: const EdgeInsets.all(30), child: Text("No consultants found", style: TextStyle(color: textColor.withOpacity(0.6)))))
                         : ListView.builder(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: _allConsultants.length,
                       itemBuilder: (context, index) {
-                        return _buildConsultantRow(_allConsultants[index]);
+                        return _buildConsultantRow(_allConsultants[index], isDarkMode, textColor);
                       },
                     ),
                   ],
@@ -175,56 +177,77 @@ class _AllConsultantScreenState extends State<AllConsultantScreen> {
     );
   }
 
-  // --- WIDGET: TOP RATED CARD (Horizontal) ---
-  Widget _buildTopRatedCard(Map<String, dynamic> data) {
-    // Safety Logic: Handle both root-level properties and nested 'user' objects
+  // --- WIDGET: TOP RATED CARD ---
+  Widget _buildTopRatedCard(Map<String, dynamic> data, bool isDarkMode, Color textColor) {
+    // 1. EXTRACT DATA
     final userObj = data['user'];
     final Map<String, dynamic> user = (userObj is Map<String, dynamic>) ? userObj : {};
 
-    final String name = user['name'] ?? data['name'] ?? "Unknown";
+    String fName = user['f_name'] ?? "";
+    String lName = user['l_name'] ?? "";
+    String name = (fName.isNotEmpty || lName.isNotEmpty)
+        ? "$fName $lName".trim()
+        : (user['name'] ?? data['name'] ?? "Unknown Expert");
+
     final String avatar = user['avatar'] ?? data['avatar'] ?? "";
-    final String specialization = data['specialization'] ?? "Specialist";
-    final double rating = double.tryParse(data['avg_rating']?.toString() ?? "0") ?? 0.0;
+    final String specialization = data['professional_title'] ?? data['specialization'] ?? "Specialist";
+    final double rating = double.tryParse(data['average_rating']?.toString() ?? data['avg_rating']?.toString() ?? "0") ?? 0.0;
 
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ConsultantProfileScreen(consultantId: data['id']),
-          ),
-        );
-      },
+      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => ConsultantProfileScreen(consultantId: data['id']))),
       child: Container(
-        width: 140,
+        width: 155,
         margin: const EdgeInsets.only(right: 15, bottom: 10),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 5, offset: Offset(0, 4))],
+          // Dark Mode Card Color
+          color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+                color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4)
+            )
+          ],
+          border: isDarkMode ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
         ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             CircleAvatar(
-              radius: 30,
-              backgroundColor: Colors.grey[200],
+              radius: 35,
+              backgroundColor: isDarkMode ? Colors.grey[800] : Colors.grey[100],
               backgroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
-              child: avatar.isEmpty ? const Icon(Icons.person, color: Colors.grey) : null,
+              child: avatar.isEmpty ? Icon(Icons.person, size: 35, color: isDarkMode ? Colors.grey[400] : Colors.grey) : null,
+            ),
+            const SizedBox(height: 10),
+            Text(
+                name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: textColor)
+            ),
+            Text(
+                specialization,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 11, color: textColor.withOpacity(0.6))
             ),
             const SizedBox(height: 8),
-            Text(name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-            Text(specialization, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11, color: AppColors.primary)),
-            const Spacer(),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(color: Colors.amber[100], borderRadius: BorderRadius.circular(8)),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                  color: Colors.amber.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8)
+              ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.star, size: 12, color: Colors.amber),
-                  const SizedBox(width: 4),
-                  Text("$rating", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  const Icon(Icons.star, size: 14, color: Colors.amber),
+                  Text(" $rating", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.amber)),
                 ],
               ),
             )
@@ -234,21 +257,27 @@ class _AllConsultantScreenState extends State<AllConsultantScreen> {
     );
   }
 
-  // --- WIDGET: ALL CONSULTANTS ROW (Vertical) ---
-  Widget _buildConsultantRow(Map<String, dynamic> data) {
-    // 1. DATA EXTRACTION SAFETY
-    // Check if 'user' key exists and is a Map. If not, fallback to empty map.
+  // --- WIDGET: ALL CONSULTANTS ROW ---
+  Widget _buildConsultantRow(Map<String, dynamic> data, bool isDarkMode, Color textColor) {
+    // 1. EXTRACT DATA
     final userObj = data['user'];
     final Map<String, dynamic> user = (userObj is Map<String, dynamic>) ? userObj : {};
 
-    // 2. RETRIEVE VALUES (Fallback Priority: User Object -> Root Object -> Default)
-    final String name = user['name'] ?? data['name'] ?? "Consultant";
-    final String avatar = user['avatar'] ?? data['avatar'] ?? "";
-    final String specialization = data['specialization'] ?? "Expert";
+    String fName = user['f_name'] ?? "";
+    String lName = user['l_name'] ?? "";
+    String name;
+    if (fName.isNotEmpty || lName.isNotEmpty) {
+      name = "$fName $lName".trim();
+    } else {
+      name = user['name'] ?? data['name'] ?? "Consultant Name";
+    }
 
-    // 3. SAFE PARSING FOR NUMBERS
-    final double rating = double.tryParse(data['avg_rating']?.toString() ?? "0") ?? 0.0;
-    final String hourlyRate = data['hourly_rate']?.toString() ?? "N/A";
+    final String avatar = user['avatar'] ?? data['avatar'] ?? "";
+    final String subtitle = data['professional_title'] ?? data['specialization'] ?? "Consultant";
+
+    final double rating = double.tryParse(data['average_rating']?.toString() ?? data['avg_rating']?.toString() ?? "0") ?? 0.0;
+    final int reviews = int.tryParse(data['total_reviews']?.toString() ?? "0") ?? 0;
+    final int views = int.tryParse(data['profile_views']?.toString() ?? "0") ?? 0;
 
     return GestureDetector(
       onTap: () {
@@ -261,101 +290,158 @@ class _AllConsultantScreenState extends State<AllConsultantScreen> {
       },
       child: Container(
         margin: const EdgeInsets.only(bottom: 15),
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(15),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: Offset(0, 3))],
+          // Dark Mode Card Color
+          color: isDarkMode ? const Color(0xFF1E1E1E) : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+          border: isDarkMode ? Border.all(color: Colors.white.withOpacity(0.05)) : null,
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // --- AVATAR ---
             Container(
+              width: 60,
+              height: 60,
               decoration: BoxDecoration(
-                border: Border.all(color: AppColors.primary.withOpacity(0.2), width: 2),
-                shape: BoxShape.circle,
+                color: isDarkMode ? Colors.grey[800] : Colors.grey[100],
+                borderRadius: BorderRadius.circular(15),
+                image: avatar.isNotEmpty ? DecorationImage(image: NetworkImage(avatar), fit: BoxFit.cover) : null,
               ),
-              child: CircleAvatar(
-                radius: 28,
-                backgroundColor: Colors.grey[200],
-                backgroundImage: avatar.isNotEmpty ? NetworkImage(avatar) : null,
-                child: avatar.isEmpty ? const Icon(Icons.person, color: Colors.grey) : null,
-              ),
+              child: avatar.isEmpty ? Icon(Icons.person, color: isDarkMode ? Colors.grey[500] : Colors.grey) : null,
             ),
+
             const SizedBox(width: 15),
+
+            // --- INFO ---
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                  // Name
+                  Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      fontFamily: 'Poppins',
+                      color: textColor, // Adaptive Color
+                    ),
+                  ),
+
+                  // Subtitle
                   const SizedBox(height: 2),
-                  Text(specialization, style: TextStyle(color: Colors.grey[600], fontSize: 13)),
-                  const SizedBox(height: 6),
+                  Text(
+                    subtitle,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 13, color: textColor.withOpacity(0.6)), // Adaptive Color
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // --- STATS ROW ---
                   Row(
                     children: [
-                      const Icon(Icons.star, size: 14, color: Colors.amber),
-                      Text(" $rating", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                      const Spacer(),
-                      // Only show rate if it exists
-                      if (hourlyRate != "N/A" && hourlyRate != "null")
-                        Text("\$$hourlyRate/hr", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green[700], fontSize: 13)),
+                      _buildStatBadge(Icons.star_rounded, "$rating", Colors.amber, isDarkMode),
+                      const SizedBox(width: 15),
+                      _buildStatBadge(Icons.chat_bubble_outline_rounded, "$reviews", Colors.blue, isDarkMode),
+                      const SizedBox(width: 15),
+                      _buildStatBadge(Icons.visibility_outlined, "$views", Colors.purple, isDarkMode),
                     ],
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: 10),
-            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+
+            // Arrow
+            Padding(
+              padding: const EdgeInsets.only(top: 25),
+              child: Icon(Icons.arrow_forward_ios_rounded, size: 16, color: textColor.withOpacity(0.3)),
+            ),
           ],
         ),
       ),
     );
   }
 
-  // --- GLASS HEADER WITH SEARCH ---
-  Widget _buildGlassHeader(double topPadding) {
+  // Helper for the badges
+  Widget _buildStatBadge(IconData icon, String text, Color color, bool isDarkMode) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        // In dark mode, we make the background slightly more opaque to be visible
+        color: color.withOpacity(isDarkMode ? 0.2 : 0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 5),
+          Text(
+              text,
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  // Ensure text is readable
+                  color: isDarkMode ? color.withOpacity(0.9) : color.withOpacity(0.9)
+              )
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- HEADER ---
+  Widget _buildGlassHeader(double topPadding, bool isDarkMode) {
     return ClipRRect(
-      borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(25), bottomRight: Radius.circular(25)),
+      borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
         child: Container(
           width: double.infinity,
-          padding: EdgeInsets.only(top: topPadding + 10, bottom: 20, left: 20, right: 20),
+          padding: EdgeInsets.only(top: topPadding + 10, bottom: 25, left: 20, right: 20),
           decoration: BoxDecoration(
-            color: AppColors.primary.withOpacity(0.25),
-            borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(25), bottomRight: Radius.circular(25)),
-            border: Border.all(color: Colors.white.withOpacity(0.3)),
+            color: AppColors.primary.withOpacity(0.95),
+            borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
           ),
           child: Column(
             children: [
               Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
                     onPressed: () => Navigator.pop(context),
                   ),
                   const SizedBox(width: 5),
-                  const Text("Find Consultants", style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                  const Text(
+                      "Find Consultants",
+                      style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold, fontFamily: 'Poppins')
+                  ),
                 ],
               ),
-              const SizedBox(height: 15),
-
-              // SEARCH BAR
+              const SizedBox(height: 20),
               Container(
-                height: 45,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.9),
-                  borderRadius: BorderRadius.circular(12),
+                  // Search Bar Background: White in Light Mode, Dark Grey in Dark Mode
+                  color: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
+                  borderRadius: BorderRadius.circular(15),
                 ),
-                child: TextField(
+                child: ModernTextField(
                   controller: _searchController,
+                  hintText: "Search consultants...",
+                  prefixIcon: Icons.search_rounded,
                   onChanged: _onSearchChanged,
-                  decoration: InputDecoration(
-                    hintText: "Search by name or specialization...",
-                    hintStyle: TextStyle(color: Colors.grey[500], fontSize: 14),
-                    prefixIcon: Icon(Icons.search, color: AppColors.primary),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 10),
-                  ),
                 ),
               ),
             ],

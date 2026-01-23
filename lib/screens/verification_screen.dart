@@ -4,7 +4,8 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_service.dart';
 import 'verified_screen.dart';
-import '../constants/colors.dart'; // AppColors
+import '../constants/colors.dart';
+import '../widgets/modern_button.dart';
 
 class VerificationScreen extends StatefulWidget {
   final String email;
@@ -32,8 +33,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
   bool _isLoading = false;
   bool _resending = false;
 
-  // Define the dark blue color for Text/Buttons
-  final Color _darkBlue = const Color(0xFF1B3C53);
+
 
   @override
   void initState() {
@@ -117,14 +117,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
       body: Container(
         // --- UPDATED GRADIENT ---
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF90CAF9), // Darker Blue at the top
-              Colors.white,      // Whitish at the bottom
-            ],
-          ),
+          gradient: AppColors.backgroundGradient,
         ),
         // ------------------------
         child: SafeArea(
@@ -153,7 +146,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                     style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.bold,
-                        color: _darkBlue),
+                        color: AppColors.primary),
                   ),
                   const SizedBox(height: 10),
 
@@ -162,7 +155,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                     'Enter the 6-digit code sent to\n${widget.email}',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                        color: _darkBlue.withOpacity(0.7),
+                        color: AppColors.primary.withOpacity(0.7),
                         fontSize: 16,
                         height: 1.5),
                   ),
@@ -177,33 +170,10 @@ class _VerificationScreenState extends State<VerificationScreen> {
                   const SizedBox(height: 50),
 
                   // Confirm Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 55,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _confirm,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _darkBlue,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        elevation: 5,
-                        shadowColor: _darkBlue.withOpacity(0.4),
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: CircularProgressIndicator(
-                              color: Colors.white, strokeWidth: 2))
-                          : const Text(
-                        'Confirm',
-                        style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold),
-                      ),
-                    ),
+                  ModernButton(
+                    text: "Confirm",
+                    onPressed: _isLoading ? null : _confirm,
+                    isLoading: _isLoading,
                   ),
 
                   const SizedBox(height: 20),
@@ -216,17 +186,17 @@ class _VerificationScreenState extends State<VerificationScreen> {
                         height: 20,
                         width: 20,
                         child: CircularProgressIndicator(
-                            color: _darkBlue, strokeWidth: 2))
+                            color: AppColors.primary, strokeWidth: 2))
                         : Text.rich(
                       TextSpan(
                         text: "Didn't receive the code? ",
                         style: TextStyle(
-                            color: _darkBlue.withOpacity(0.7)),
+                            color: AppColors.primary.withOpacity(0.7)),
                         children: [
                           TextSpan(
                             text: "Resend",
                             style: TextStyle(
-                              color: _darkBlue,
+                              color: AppColors.primary,
                               fontWeight: FontWeight.bold,
                               decoration: TextDecoration.underline,
                             ),
@@ -258,7 +228,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isFocused ? _darkBlue : Colors.transparent,
+          color: isFocused ? AppColors.primary : Colors.transparent,
           width: 2,
         ),
         boxShadow: [
@@ -279,7 +249,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
           style: TextStyle(
               fontSize: size * 0.5,
               fontWeight: FontWeight.bold,
-              color: _darkBlue),
+              color: AppColors.primary),
           decoration: const InputDecoration(
             counterText: '',
             border: InputBorder.none,

@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'home_screen.dart';
 import '../constants/colors.dart';
+import '../widgets/modern_button.dart';
 
 class VerifiedScreen extends StatelessWidget {
   const VerifiedScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    const primary = Color(0xFF1B3C53);
 
     return Scaffold(
       body: Container(
@@ -28,8 +28,8 @@ class VerifiedScreen extends StatelessWidget {
                     shape: BoxShape.circle,
                     gradient: LinearGradient(
                       colors: [
-                        primary.withOpacity(0.2),
-                        primary.withOpacity(0.05),
+                        AppColors.primary.withOpacity(0.2),
+                        AppColors.primary.withOpacity(0.05),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
@@ -37,7 +37,7 @@ class VerifiedScreen extends StatelessWidget {
                   ),
                   child: const Icon(
                     Icons.check_circle,
-                    color: primary,
+                    color: AppColors.primary,
                     size: 110,
                   ),
                 ),
@@ -51,7 +51,7 @@ class VerifiedScreen extends StatelessWidget {
                   style: GoogleFonts.literata(
                     fontSize: 26,
                     fontWeight: FontWeight.bold,
-                    color: primary,
+                    color: AppColors.primary,
                   ),
                 ),
 
@@ -70,41 +70,15 @@ class VerifiedScreen extends StatelessWidget {
                 const SizedBox(height: 40),
 
                 // --- Continue Button with gradient ---
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pushAndRemoveUntil(
-                        context,
-                        MaterialPageRoute(builder: (_) => const HomeScreen()),
-                            (route) => false,
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      padding: EdgeInsets.zero,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                    child: Ink(
-                      decoration: BoxDecoration(
-                        gradient: AppColors.primaryGradient,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Container(
-                        alignment: Alignment.center,
-                        child: Text(
-                          "Continue",
-                          style: GoogleFonts.literata(
-                            fontSize: 16,
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
+                ModernButton(
+                  text: "Continue",
+                  onPressed: () {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (_) => const HomeScreen()),
+                          (route) => false,
+                    );
+                  },
                 ),
               ],
             ),

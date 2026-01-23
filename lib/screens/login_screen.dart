@@ -32,7 +32,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   // ----------------------------------------------------------------
-  // 1. RESTORE ACCOUNT DIALOG (FIXED: Added ScrollView)
+  // 1. RESTORE ACCOUNT DIALOG
   // ----------------------------------------------------------------
   void _showRestoreDialog(BuildContext context) {
     final restoreEmailCtrl = TextEditingController();
@@ -44,33 +44,44 @@ class _LoginScreenState extends State<LoginScreen> {
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
+            // Theme check for Dialog
+            final isDark = Theme.of(context).brightness == Brightness.dark;
+
             return AlertDialog(
-              title: const Text("Restore Account"),
-              // FIX: Wrapped in SingleChildScrollView to prevent overflow
+              backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+              title: Text("Restore Account", style: TextStyle(color: isDark ? Colors.white : Colors.black)),
               content: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Text(
+                    Text(
                       "Account deleted? Enter your credentials to restore it.",
-                      style: TextStyle(fontSize: 14, color: Colors.grey),
+                      style: TextStyle(fontSize: 14, color: isDark ? Colors.grey[400] : Colors.grey),
                     ),
                     const SizedBox(height: 15),
                     TextField(
                       controller: restoreEmailCtrl,
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black),
                       decoration: InputDecoration(
                         labelText: "Email",
-                        prefixIcon: const Icon(Icons.email_outlined),
+                        labelStyle: TextStyle(color: isDark ? Colors.grey : null),
+                        prefixIcon: Icon(Icons.email_outlined, color: isDark ? Colors.grey : null),
+                        filled: true,
+                        fillColor: isDark ? Colors.white10 : Colors.grey[100],
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                     ),
                     const SizedBox(height: 10),
                     TextField(
                       controller: restorePassCtrl,
+                      style: TextStyle(color: isDark ? Colors.white : Colors.black),
                       decoration: InputDecoration(
                         labelText: "Password",
-                        prefixIcon: const Icon(Icons.lock_outline),
+                        labelStyle: TextStyle(color: isDark ? Colors.grey : null),
+                        prefixIcon: Icon(Icons.lock_outline, color: isDark ? Colors.grey : null),
+                        filled: true,
+                        fillColor: isDark ? Colors.white10 : Colors.grey[100],
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                       ),
                       obscureText: true,
@@ -156,16 +167,27 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
 
+    // 1. THEME DETECTION
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    // 2. COLOR VARIABLES
+    final backgroundColor = isDarkMode ? const Color(0xFF121212) : null; // Gradient vs Black
+    final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    final titleColor = isDarkMode ? Colors.white : Colors.black87;
+    final subtitleColor = isDarkMode ? Colors.grey[400] : AppColors.textSecondary;
+    final inputFillColor = isDarkMode ? Colors.white10 : Colors.grey[100];
+    final inputTextColor = isDarkMode ? Colors.white : Colors.black;
+
     return Scaffold(
-      // 1. Ensure background covers everything
+      backgroundColor: backgroundColor,
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: AppColors.backgroundGradient,
+        decoration: BoxDecoration(
+          // Gradient only in Light Mode
+          gradient: isDarkMode ? null : AppColors.backgroundGradient,
         ),
         child: SafeArea(
-          // 2. LayoutBuilder: "Centers content" but "Scrolls if keyboard opens"
           child: LayoutBuilder(
             builder: (context, constraints) {
               return SingleChildScrollView(
@@ -178,7 +200,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const SizedBox(height: 20), // Top padding
+                        const SizedBox(height: 20),
 
                         /// ROUND LOGO
                         ClipOval(
@@ -191,14 +213,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
 
                         const SizedBox(height: 20),
-                        const Text(
+                        Text(
                           'Welcome Back',
-                          style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold),
+                          style: TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: titleColor),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           'Sign in to continue your journey',
-                          style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                          style: TextStyle(fontSize: 14, color: subtitleColor),
                         ),
                         const SizedBox(height: 30),
 
@@ -207,11 +229,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           margin: const EdgeInsets.symmetric(horizontal: 20),
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: cardColor, // Adaptive
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.grey.withOpacity(0.2),
+                                color: isDarkMode ? Colors.black.withOpacity(0.3) : Colors.grey.withOpacity(0.2),
                                 blurRadius: 20,
                                 offset: const Offset(0, 10),
                               ),
@@ -227,6 +249,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   icon: Icons.email_outlined,
                                   keyboardType: TextInputType.emailAddress,
                                   isPassword: false,
+                                  fillColor: inputFillColor!,
+                                  textColor: inputTextColor,
+                                  isDarkMode: isDarkMode,
                                 ),
                                 const SizedBox(height: 12),
 
@@ -235,6 +260,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                   label: 'Password',
                                   icon: Icons.lock_outline,
                                   isPassword: true,
+                                  fillColor: inputFillColor,
+                                  textColor: inputTextColor,
+                                  isDarkMode: isDarkMode,
                                 ),
 
                                 const SizedBox(height: 20),
@@ -298,7 +326,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                       },
                                       child: Text(
                                         "Forgot password?",
-                                        style: TextStyle(color: AppColors.primary),
+                                        style: TextStyle(color: isDarkMode ? Colors.blue[200] : AppColors.primary),
                                       ),
                                     ),
                                   ],
@@ -313,13 +341,13 @@ class _LoginScreenState extends State<LoginScreen> {
                         // Sign Up Text
                         RichText(
                           text: TextSpan(
-                            style: TextStyle(color: AppColors.textSecondary),
+                            style: TextStyle(color: subtitleColor),
                             children: [
                               const TextSpan(text: "Don't have an account? "),
                               TextSpan(
                                 text: "Sign up",
                                 style: TextStyle(
-                                  color: AppColors.primary,
+                                  color: isDarkMode ? Colors.white : AppColors.primary,
                                   fontWeight: FontWeight.w600,
                                 ),
                                 recognizer: TapGestureRecognizer()
@@ -335,7 +363,6 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
 
-                        // Spacer forces the content to be centered but allows scroll if needed
                         const SizedBox(height: 30),
                       ],
                     ),
@@ -356,16 +383,21 @@ class _LoginScreenState extends State<LoginScreen> {
     IconData? icon,
     bool isPassword = false,
     TextInputType keyboardType = TextInputType.text,
+    required Color fillColor,
+    required Color textColor,
+    required bool isDarkMode,
   }) {
     return TextFormField(
       controller: controller,
       obscureText: isPassword ? _isObscure : false,
       keyboardType: keyboardType,
+      style: TextStyle(color: textColor),
       decoration: InputDecoration(
         labelText: label,
+        labelStyle: TextStyle(color: isDarkMode ? Colors.grey[400] : Colors.grey[700]),
         filled: true,
-        fillColor: Colors.grey[100],
-        prefixIcon: icon != null ? Icon(icon, color: AppColors.primary) : null,
+        fillColor: fillColor,
+        prefixIcon: icon != null ? Icon(icon, color: isDarkMode ? Colors.grey[400] : AppColors.primary) : null,
         suffixIcon: isPassword
             ? IconButton(
           icon: Icon(
@@ -380,6 +412,10 @@ class _LoginScreenState extends State<LoginScreen> {
         )
             : null,
         border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),

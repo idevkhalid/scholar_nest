@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/colors.dart';
+import '../constants/colors.dart';
 import 'intro_screen.dart'; // Ensure this points to your IntroScreen file
+import '../widgets/modern_button.dart';
 
 class WalkthroughScreen extends StatefulWidget {
   const WalkthroughScreen({super.key});
@@ -215,28 +217,9 @@ class _WalkthroughScreenState extends State<WalkthroughScreen> {
                     const SizedBox(height: 30),
 
                     // -- Main Button --
-                    SizedBox(
-                      width: double.infinity,
-                      height: 55,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          elevation: 5,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                        ),
-                        onPressed: _goToNextPage,
-                        child: Text(
-                          isLastPage ? "GET STARTED" : "NEXT",
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1,
-                          ),
-                        ),
-                      ),
+                    ModernButton(
+                      text: isLastPage ? "GET STARTED" : "NEXT",
+                      onPressed: _goToNextPage,
                     ),
                   ],
                 ),

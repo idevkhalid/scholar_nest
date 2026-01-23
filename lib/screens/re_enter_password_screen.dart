@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/colors.dart';
-import '../services/api_service.dart'; // Ensure this import exists
+import '../services/api_service.dart';
 import 'forgot_password_screen.dart';
-import 'login_screen.dart'; // Import your login screen
+import 'login_screen.dart';
+import '../widgets/modern_text_field.dart';
 
 class ReEnterPasswordScreen extends StatefulWidget {
   const ReEnterPasswordScreen({super.key});
@@ -14,7 +15,6 @@ class ReEnterPasswordScreen extends StatefulWidget {
 
 class _ReEnterPasswordScreenState extends State<ReEnterPasswordScreen> {
   final TextEditingController _passwordController = TextEditingController();
-  bool isObscure = true;
   bool isLoading = false;
 
   @override
@@ -84,10 +84,22 @@ class _ReEnterPasswordScreenState extends State<ReEnterPasswordScreen> {
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
 
+    // 1. THEME DETECTION
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    // 2. ADAPTIVE COLORS
+    final backgroundColor = isDarkMode ? const Color(0xFF121212) : null; // Null uses gradient
+    final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    final primaryTextColor = isDarkMode ? Colors.white : Colors.black87;
+    final secondaryTextColor = isDarkMode ? Colors.grey[400] : Colors.grey;
+    final linkColor = isDarkMode ? Colors.white : AppColors.primary;
+
     return Scaffold(
+      backgroundColor: backgroundColor,
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppColors.backgroundGradient,
+        decoration: BoxDecoration(
+          // Show gradient only in Light Mode
+          gradient: isDarkMode ? null : AppColors.backgroundGradient,
         ),
         child: SafeArea(
           child: GestureDetector(
@@ -129,18 +141,18 @@ class _ReEnterPasswordScreenState extends State<ReEnterPasswordScreen> {
 
                           const SizedBox(height: 40),
 
-                          // ===== Password Form =====
+                          // ===== Password Form Card =====
                           Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 20),
                             child: Container(
                               width: double.infinity,
                               padding: const EdgeInsets.all(25),
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: cardColor, // Adaptive Color
                                 borderRadius: BorderRadius.circular(20),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: Colors.grey.withOpacity(0.2),
+                                    color: isDarkMode ? Colors.black.withOpacity(0.3) : Colors.grey.withOpacity(0.2),
                                     blurRadius: 10,
                                     offset: const Offset(0, 5),
                                   ),
@@ -149,55 +161,32 @@ class _ReEnterPasswordScreenState extends State<ReEnterPasswordScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
+                                  Text(
                                     "Re-enter Password",
                                     style: TextStyle(
                                       fontSize: 22,
                                       fontWeight: FontWeight.bold,
+                                      color: primaryTextColor, // Adaptive
                                     ),
                                   ),
                                   const SizedBox(height: 8),
-                                  const Text(
+                                  Text(
                                     "To permanently delete your account, please confirm your password.",
                                     style: TextStyle(
-                                      color: Colors.grey,
+                                      color: secondaryTextColor, // Adaptive
                                       fontSize: 14,
                                     ),
                                   ),
                                   const SizedBox(height: 25),
 
-                                  TextField(
+                                  // Pass necessary theme info to ModernTextField if it needs it,
+                                  // or wrap it in a Theme widget if it relies on context.
+                                  ModernTextField(
                                     controller: _passwordController,
-                                    obscureText: isObscure,
-                                    decoration: InputDecoration(
-                                      labelText: "Password",
-                                      floatingLabelBehavior:
-                                      FloatingLabelBehavior.always,
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                        borderSide:
-                                        BorderSide(color: AppColors.primary),
-                                      ),
-                                      prefixIcon: Icon(Icons.lock_outline,
-                                          color: AppColors.primary),
-                                      suffixIcon: IconButton(
-                                        icon: Icon(
-                                          isObscure
-                                              ? Icons.visibility_off
-                                              : Icons.visibility,
-                                          color: AppColors.primary,
-                                        ),
-                                        onPressed: () {
-                                          setState(
-                                                  () => isObscure = !isObscure);
-                                        },
-                                      ),
-                                      contentPadding: const EdgeInsets.symmetric(
-                                          horizontal: 12, vertical: 18),
-                                    ),
+                                    hintText: "Password",
+                                    labelText: "Password",
+                                    isPassword: true,
+                                    prefixIcon: Icons.lock_outline,
                                   ),
 
                                   const SizedBox(height: 30),
@@ -206,25 +195,22 @@ class _ReEnterPasswordScreenState extends State<ReEnterPasswordScreen> {
                                   SizedBox(
                                     width: double.infinity,
                                     child: ElevatedButton(
-                                      onPressed: isLoading
-                                          ? null
-                                          : _handleDeleteAccount,
+                                      onPressed: isLoading ? null : _handleDeleteAccount,
                                       style: ElevatedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 16),
+                                        padding: const EdgeInsets.symmetric(vertical: 16),
                                         shape: RoundedRectangleBorder(
-                                          borderRadius:
-                                          BorderRadius.circular(12),
+                                          borderRadius: BorderRadius.circular(30),
                                         ),
-                                        backgroundColor: Colors.redAccent, // Red for Delete
+                                        backgroundColor: Colors.redAccent, // Always Red for danger
+                                        elevation: 5,
+                                        shadowColor: Colors.redAccent.withOpacity(0.4),
                                       ),
                                       child: isLoading
                                           ? const SizedBox(
                                         height: 20,
                                         width: 20,
                                         child: CircularProgressIndicator(
-                                            color: Colors.white,
-                                            strokeWidth: 2),
+                                            color: Colors.white, strokeWidth: 2),
                                       )
                                           : const Text(
                                         "Confirm Delete",
@@ -245,8 +231,7 @@ class _ReEnterPasswordScreenState extends State<ReEnterPasswordScreen> {
                                         Navigator.push(
                                           context,
                                           MaterialPageRoute(
-                                            builder: (_) =>
-                                            const ForgotPasswordScreen(),
+                                            builder: (_) => const ForgotPasswordScreen(),
                                           ),
                                         );
                                       },
@@ -255,7 +240,7 @@ class _ReEnterPasswordScreenState extends State<ReEnterPasswordScreen> {
                                         style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
-                                          color: AppColors.primary,
+                                          color: linkColor, // Adaptive (White/Blue)
                                         ),
                                       ),
                                     ),

@@ -2,18 +2,9 @@ import 'dart:ui'; // Required for ImageFilter
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 
-// --- COLOR CONSTANTS (Merged for consistency) ---
-class AppColors {
-  static const Color primary = Color(0xFF1B3C53);
-  static const LinearGradient backgroundGradient = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [
-      Color(0x9977A9FF), // Light Blue-ish top
-      Colors.white,      // White bottom
-    ],
-  );
-}
+import '../constants/colors.dart';
+import '../widgets/modern_text_field.dart';
+import '../widgets/modern_button.dart';
 
 class WriteReviewScreen extends StatefulWidget {
   final int consultantId;
@@ -63,16 +54,23 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Get status bar height
+    // 1. THEME DETECTION
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     final double topPadding = MediaQuery.of(context).padding.top;
 
+    // 2. ADAPTIVE COLORS
+    // Text Color: Dark Blue in Light Mode, White in Dark Mode
+    final Color sectionTitleColor = isDarkMode ? Colors.white : AppColors.primary;
+    // Card Background: White in Light Mode, Dark Grey in Dark Mode
+    final Color cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white.withOpacity(0.9);
+
     return Scaffold(
-      // 1. EXTEND BODY BEHIND APP BAR (Crucial for gradient to go to top)
       extendBodyBehindAppBar: true,
+      // 3. ADAPTIVE BACKGROUND (Gradient vs Solid Dark)
+      backgroundColor: isDarkMode ? const Color(0xFF121212) : Colors.white,
       body: Container(
-        // 2. BACKGROUND GRADIENT
-        decoration: const BoxDecoration(
-          gradient: AppColors.backgroundGradient,
+        decoration: BoxDecoration(
+          gradient: isDarkMode ? null : AppColors.backgroundGradient,
         ),
         child: Column(
           children: [
@@ -87,19 +85,19 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
                 child: Container(
                   width: double.infinity,
                   padding: EdgeInsets.only(
-                    top: topPadding + 15, // Space for status bar
+                    top: topPadding + 15,
                     bottom: 20,
                     left: 20,
                     right: 20,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.3), // Requested transparency
+                    color: AppColors.primary.withOpacity(0.90),
                     borderRadius: const BorderRadius.only(
                       bottomLeft: Radius.circular(30),
                       bottomRight: Radius.circular(30),
                     ),
                     border: Border.all(
-                      color: Colors.white.withOpacity(0.25), // Subtle border
+                      color: Colors.white.withOpacity(0.1),
                     ),
                   ),
                   child: Row(
@@ -125,7 +123,7 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
                         ),
                       ),
 
-                      // Invisible Spacer to balance the layout
+                      // Invisible Spacer
                       const SizedBox(width: 40),
                     ],
                   ),
@@ -146,11 +144,11 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
                     Container(
                       padding: const EdgeInsets.all(25),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9), // Slight transparency for glass effect
+                        color: cardColor, // Uses Adaptive Color
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
                           BoxShadow(
-                            color: AppColors.primary.withOpacity(0.08),
+                            color: isDarkMode ? Colors.black.withOpacity(0.3) : AppColors.primary.withOpacity(0.08),
                             blurRadius: 15,
                             offset: const Offset(0, 5),
                           ),
@@ -160,13 +158,13 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           // RATING SECTION
-                          const Center(
+                          Center(
                             child: Text(
                               "How was your experience?",
                               style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: AppColors.primary
+                                  color: sectionTitleColor // Adaptive Color
                               ),
                             ),
                           ),
@@ -192,61 +190,39 @@ class _WriteReviewScreenState extends State<WriteReviewScreen> {
                           const SizedBox(height: 30),
 
                           // COMMENT LABEL
-                          const Text(
+                          Text(
                             "Your Feedback",
                             style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: AppColors.primary
+                                color: sectionTitleColor // Adaptive Color
                             ),
                           ),
                           const SizedBox(height: 10),
 
                           // TEXT FIELD
-                          TextField(
-                            controller: _commentController,
-                            maxLines: 6,
-                            style: const TextStyle(color: AppColors.primary),
-                            decoration: InputDecoration(
+                          // Note: Ensure ModernTextField uses Theme.of(context) internally or passing colors manually if needed.
+                          // Usually standard TextFields adapt automatically to dark mode.
+                          Container(
+                            decoration: BoxDecoration(
+                              // Optional: Ensure input background is distinct in dark mode if needed
+                              color: isDarkMode ? Colors.grey[900] : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: ModernTextField(
+                              controller: _commentController,
+                              maxLines: 6,
                               hintText: "Share details about your consultation...",
-                              hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(15),
-                                borderSide: BorderSide.none,
-                              ),
-                              filled: true,
-                              fillColor: AppColors.primary.withOpacity(0.05),
-                              contentPadding: const EdgeInsets.all(15),
                             ),
                           ),
 
                           const SizedBox(height: 30),
 
                           // SUBMIT BUTTON
-                          SizedBox(
-                            width: double.infinity,
-                            height: 55,
-                            child: ElevatedButton(
-                              onPressed: _isSubmitting ? null : _submit,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                foregroundColor: Colors.white,
-                                elevation: 0,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                ),
-                              ),
-                              child: _isSubmitting
-                                  ? const SizedBox(
-                                  height: 24,
-                                  width: 24,
-                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)
-                              )
-                                  : const Text(
-                                  "Submit Review",
-                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
-                              ),
-                            ),
+                          ModernButton(
+                            text: "Submit Review",
+                            onPressed: _isSubmitting ? () {} : _submit,
+                            isLoading: _isSubmitting,
                           ),
                         ],
                       ),

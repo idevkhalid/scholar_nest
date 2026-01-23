@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../screens/WriteReviewScreen.dart';
+import '../constants/colors.dart';
 
 class ReviewsListWidget extends StatefulWidget {
   final int consultantId;
@@ -33,7 +34,7 @@ class _ReviewsListWidgetState extends State<ReviewsListWidget> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text("Recent Reviews", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1B3C53))),
+            const Text("Recent Reviews", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
             TextButton(
               onPressed: () async {
                 final success = await Navigator.push(
@@ -42,7 +43,7 @@ class _ReviewsListWidgetState extends State<ReviewsListWidget> {
                 );
                 if (success == true) _loadReviews(); // Refresh if review submitted
               },
-              child: const Text("Write a Review"),
+              child: const Text("Write a Review", style: TextStyle(color: AppColors.primary)),
             )
           ],
         ),
@@ -141,7 +142,15 @@ class _ReviewItemState extends State<_ReviewItem> {
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 4)]),
+      decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4))
+          ]),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

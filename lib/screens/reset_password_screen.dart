@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../constants/colors.dart';
+import '../widgets/modern_text_field.dart';
+import '../widgets/modern_button.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   final String email;
@@ -64,95 +67,63 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final primaryColor = const Color(0xFF1B3C53);
-
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F6FA),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text("Reset Password"),
-        backgroundColor: primaryColor,
+        backgroundColor: AppColors.primary,
+        elevation: 0,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(20),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        physics: const BouncingScrollPhysics(),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 40),
-            const Text(
+            const SizedBox(height: 20),
+            Text(
               "Enter your new password",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 25),
-
-            // New Password
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: "New Password",
-                prefixIcon: const Icon(Icons.lock_outline),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: primaryColor, width: 2),
-                ),
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
               ),
             ),
-            const SizedBox(height: 15),
-
-            // Confirm Password
-            TextField(
-              controller: confirmController,
-              obscureText: true,
-              decoration: InputDecoration(
-                labelText: "Confirm Password",
-                prefixIcon: const Icon(Icons.lock_outline),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: primaryColor, width: 2),
-                ),
+            const SizedBox(height: 10),
+             Text(
+              "Please create a strong password that you can remember.",
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary,
               ),
             ),
             const SizedBox(height: 30),
 
+            // New Password
+            ModernTextField(
+              controller: passwordController,
+              labelText: "New Password",
+              hintText: "••••••••",
+              prefixIcon: Icons.lock_outline,
+              isPassword: true,
+            ),
+            const SizedBox(height: 20),
+
+            // Confirm Password
+            ModernTextField(
+              controller: confirmController,
+              labelText: "Confirm Password",
+              hintText: "••••••••",
+              prefixIcon: Icons.lock_outline,
+              isPassword: true,
+            ),
+            const SizedBox(height: 40),
+
             // Gradient Reset Button
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                onPressed: isLoading ? null : resetPassword,
-                style: ElevatedButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                ),
-                child: Ink(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [primaryColor, primaryColor.withOpacity(0.8)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Center(
-                    child: isLoading
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                      "RESET PASSWORD",
-                      style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white),
-                    ),
-                  ),
-                ),
-              ),
+            ModernButton(
+              text: "Reset Password",
+              onPressed: isLoading ? null : resetPassword,
+              isLoading: isLoading,
             ),
           ],
         ),

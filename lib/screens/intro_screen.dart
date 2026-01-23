@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../constants/colors.dart';
 import '../services/ad_service.dart';
 import 'home_screen.dart';
+import '../widgets/modern_button.dart';
 
 class IntroScreen extends StatefulWidget {
   const IntroScreen({super.key});
@@ -130,42 +131,18 @@ class _IntroScreenState extends State<IntroScreen>
                   // --------------------------------------------------
                   // NEXT BUTTON
                   // --------------------------------------------------
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                  ModernButton(
+                    text: "NEXT",
+                    icon: Icons.arrow_forward,
+                    onPressed: () {
+                      AdService().showAdWithCounter();
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const HomeScreen(),
                         ),
-                      ),
-                      onPressed: () {
-                        // 1. Call the counter method
-                        AdService().showAdWithCounter();
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const HomeScreen(),
-                          ),
-                        );
-                      },
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'NEXT',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                          Icon(Icons.arrow_forward, color: Colors.white),
-                        ],
-                      ),
-                    ),
+                      );
+                    },
                   ),
                 ],
               ),

@@ -2,19 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../services/api_service.dart';
-import '../screens/provider.dart';
+import '../screens/provider.dart' hide AppColors;
 import 'how_to apply _screen.dart';
 
-
-// --- LOCAL COLORS (Renamed to avoid conflict) ---
-class PageColors {
-  static const Color primary = Color(0xFF1B3C53);       // Dark Blue
-  static const Color background = Color(0xFFEAF1F8);    // Light Blue/Grey
-  static const Color textPrimary = Color(0xFF1B3C53);   // Dark Text
-  static const Color textSecondary = Color(0xFF7B7B7B); // Grey Text
-  static const Color cardBackground = Colors.white;
-  static const Color accentGold = Color(0xFFD4AF37);    // Gold for Bookmark
-}
+// --- STYLING IMPORTS ---
+import '../widgets/modern_button.dart';
+import '../constants/colors.dart';
 
 class ScholarshipDetailsPage extends StatefulWidget {
   final int scholarshipId;
@@ -38,7 +31,7 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
     _fetchDetails();
   }
 
-  // --- LOGIC ---
+  // --- LOGIC (RETAINED) ---
   Future<void> _fetchDetails() async {
     final response = await ApiService.getScholarshipDetails(widget.scholarshipId);
 
@@ -50,13 +43,12 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
             isSaved = response['meta']['is_saved'] ?? false;
           }
         } else {
-          // Fallback dummy data if API fails
           scholarshipData = {
             "title": "Global Excellence Scholarship",
             "country": "USA",
             "category": "Merit-based",
             "degree_level": "Master's Degree",
-            "deadline": "2025-12-20 00:00:00", // Example with time to test formatting
+            "deadline": "2025-12-20 00:00:00",
             "amount": "45,000",
             "currency": "USD",
             "description": "This is a prestigious scholarship for international students.",
@@ -74,7 +66,6 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
 
   Future<void> _toggleSave() async {
     setState(() => isSaved = !isSaved);
-
     try {
       final prefs = await SharedPreferences.getInstance();
       final String? token = prefs.getString('access_token');
@@ -92,7 +83,6 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
     if (scholarshipData == null) return;
     final int? consultantId = scholarshipData?['consultant_id'] ?? scholarshipData?['consultant']?['id'];
 
-    // Internal Apply
     if (consultantId != null) {
       setState(() => isApplying = true);
       final result = await ApiService.applyForScholarship(consultantId: consultantId, scholarshipId: widget.scholarshipId);
@@ -106,7 +96,6 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
         }
       }
     }
-    // External Link
     else {
       final String url = scholarshipData?['apply_link'] ?? scholarshipData?['official_website'] ?? "";
       if (url.isNotEmpty) {
@@ -121,163 +110,159 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        backgroundColor: Theme.of(context).cardColor,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        title: const Row(children: [Icon(Icons.check_circle, color: Colors.green), SizedBox(width: 10), Text("Success")]),
+        title: Row(children: [Icon(Icons.check_circle, color: AppColors.success), const SizedBox(width: 10), const Text("Success")]),
         content: Text(message),
-        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("OK"))],
+        actions: [TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("OK", style: TextStyle(color: AppColors.primary)))],
       ),
     );
   }
 
-  // --- HELPER TO CLEAN DATE ---
   String _formatDate(String? dateString) {
     if (dateString == null || dateString.isEmpty) return "N/A";
     try {
-      // If it has a space (e.g. 2025-10-10 00:00:00), split and take first part
-      if (dateString.contains(' ')) {
-        return dateString.split(' ')[0];
-      }
-      // If it has a T (e.g. 2025-10-10T00:00:00), split and take first part
-      if (dateString.contains('T')) {
-        return dateString.split('T')[0];
-      }
+      if (dateString.contains(' ')) return dateString.split(' ')[0];
+      if (dateString.contains('T')) return dateString.split('T')[0];
       return dateString;
-    } catch (e) {
-      return dateString;
-    }
+    } catch (e) { return dateString; }
   }
 
-  // --- BEAUTIFUL UI STARTS HERE ---
+  // --- REFINED UI ---
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: PageColors.primary,
+      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.primary,
       body: SafeArea(
         bottom: false,
         child: Column(
           children: [
-            // 1. HEADER (Dark Blue)
+            // 1. HEADER
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Back Button
-                  _buildIconBtn(Icons.arrow_back_ios_new, () => Navigator.pop(context)),
-
+                  _buildIconBtn(Icons.arrow_back_ios_new, () => Navigator.pop(context), isDark),
                   const Text(
                     "Details",
-                    style: TextStyle(fontFamily: 'serif', fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
-
-                  // Bookmark Button
                   _buildIconBtn(
                       isSaved ? Icons.bookmark : Icons.bookmark_border,
                       _toggleSave,
-                      iconColor: isSaved ? PageColors.accentGold : Colors.white
+                      isDark,
+                      iconColor: isSaved ? AppColors.secondary : Colors.white
                   ),
                 ],
               ),
             ),
-
             const SizedBox(height: 10),
 
-            // 2. WHITE SHEET (Sliding up from bottom)
+            // 2. MAIN SHEET
             Expanded(
               child: Container(
                 width: double.infinity,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(30),
-                    topRight: Radius.circular(30),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColors.backgroundDark : AppColors.background,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(35),
+                    topRight: Radius.circular(35),
                   ),
                 ),
                 child: isLoading
-                    ? const Center(child: CircularProgressIndicator(color: PageColors.primary))
+                    ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
                     : SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
                   padding: const EdgeInsets.all(24),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-
-                      // -- TITLE --
+                      // TITLE
                       Text(
                         scholarshipData?['title'] ?? "Scholarship Name",
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 24,
-                          fontFamily: 'serif',
                           fontWeight: FontWeight.bold,
-                          color: PageColors.textPrimary,
+                          color: isDark ? Colors.white : AppColors.textPrimary,
                           height: 1.2,
                         ),
                       ),
                       const SizedBox(height: 25),
 
-                      // -- INFO GRID --
+                      // INFO GRID
                       Row(
                         children: [
-                          Expanded(child: _buildGridItem(Icons.public, "Country", scholarshipData?['country'])),
+                          Expanded(child: _buildGridItem(Icons.public, "Country", scholarshipData?['country'], isDark)),
                           const SizedBox(width: 15),
-                          Expanded(child: _buildGridItem(Icons.school, "Degree", scholarshipData?['degree_level'])),
+                          Expanded(child: _buildGridItem(Icons.school, "Degree", scholarshipData?['degree_level'], isDark)),
                         ],
                       ),
                       const SizedBox(height: 15),
                       Row(
                         children: [
-                          Expanded(child: _buildGridItem(Icons.category, "Type", scholarshipData?['category'])),
+                          Expanded(child: _buildGridItem(Icons.category, "Type", scholarshipData?['category'], isDark)),
                           const SizedBox(width: 15),
-                          // --- UPDATED DEADLINE WITH FORMATTING ---
                           Expanded(child: _buildGridItem(
                               Icons.calendar_month,
                               "Deadline",
-                              _formatDate(scholarshipData?['deadline']) // Using helper here
+                              _formatDate(scholarshipData?['deadline']),
+                              isDark
                           )),
                         ],
                       ),
 
                       const SizedBox(height: 30),
-                      Divider(color: Colors.grey.withOpacity(0.2), thickness: 1),
+                      Divider(color: isDark ? Colors.white10 : Colors.grey.withOpacity(0.2), thickness: 1),
                       const SizedBox(height: 20),
 
-                      // -- DESCRIPTION --
-                      _buildSectionHeader("Description"),
+                      // DESCRIPTION
+                      _buildSectionHeader("Description", isDark),
                       Text(
                         scholarshipData?['description'] ?? "No description available.",
-                        style: const TextStyle(fontSize: 15, color: Color(0xFF555555), height: 1.6),
+                        style: TextStyle(
+                            fontSize: 15,
+                            color: isDark ? Colors.white70 : AppColors.textSecondary,
+                            height: 1.6
+                        ),
                       ),
-
                       const SizedBox(height: 20),
 
-                      // -- BENEFITS --
+                      // BENEFITS
                       _buildExpansionTile(
                         title: "Scholarship Benefits",
                         icon: Icons.monetization_on_outlined,
+                        isDark: isDark,
                         children: [
-                          _buildDetailRow("Amount", "${scholarshipData?['amount'] ?? 'N/A'} ${scholarshipData?['currency'] ?? ''}"),
+                          _buildDetailRow("Amount", "${scholarshipData?['amount'] ?? 'N/A'} ${scholarshipData?['currency'] ?? ''}", isDark),
                           if (scholarshipData?['detailed_description'] != null)
                             Padding(
                               padding: const EdgeInsets.only(top: 10),
-                              child: Text(scholarshipData!['detailed_description'], style: const TextStyle(color: Colors.black87, height: 1.4)),
+                              child: Text(
+                                  scholarshipData!['detailed_description'],
+                                  style: TextStyle(color: isDark ? Colors.white70 : Colors.black87, height: 1.4)
+                              ),
                             ),
                         ],
                       ),
 
-                      // -- ELIGIBILITY --
+                      // ELIGIBILITY
                       _buildExpansionTile(
                         title: "Eligibility Criteria",
                         icon: Icons.checklist_rtl,
+                        isDark: isDark,
                         children: (scholarshipData?['eligibility_criteria'] is List)
-                            ? (scholarshipData!['eligibility_criteria'] as List).map((e) => _buildBullet(e.toString())).toList()
-                            : [const Text("See official website for full details.")],
+                            ? (scholarshipData!['eligibility_criteria'] as List).map((e) => _buildBullet(e.toString(), isDark)).toList()
+                            : [Text("See official website for full details.", style: TextStyle(color: isDark ? Colors.white70 : Colors.black87))],
                       ),
 
                       const SizedBox(height: 25),
 
-                      // -- PROVIDER PROFILE --
+                      // PROVIDER PROFILE
                       if (scholarshipData?['consultant'] != null) ...[
-                        _buildSectionHeader("Provided By"),
+                        _buildSectionHeader("Provided By", isDark),
                         GestureDetector(
                           onTap: () {
                             final cId = scholarshipData!['consultant']['id'];
@@ -286,21 +271,20 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
                           child: Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: isDark ? AppColors.cardDark : Colors.white,
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.grey.shade200),
-                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 5))],
+                              border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+                              boxShadow: isDark ? [] : [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 5))],
                             ),
                             child: Row(
                               children: [
                                 Container(
-                                  width: 50,
-                                  height: 50,
+                                  width: 50, height: 50,
                                   decoration: BoxDecoration(
-                                    color: PageColors.background,
+                                    color: isDark ? Colors.white10 : AppColors.background,
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: const Icon(Icons.person, color: PageColors.primary),
+                                  child: Icon(Icons.person, color: isDark ? AppColors.secondary : AppColors.primary),
                                 ),
                                 const SizedBox(width: 15),
                                 Expanded(
@@ -309,13 +293,13 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
                                     children: [
                                       Text(
                                         scholarshipData?['consultant']?['user']?['name'] ?? "Provider",
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, fontFamily: 'serif'),
+                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : AppColors.textPrimary),
                                       ),
-                                      const Text("Tap to view profile", style: TextStyle(color: PageColors.textSecondary, fontSize: 12)),
+                                      Text("Tap to view profile", style: TextStyle(color: isDark ? Colors.white38 : AppColors.textSecondary, fontSize: 12)),
                                     ],
                                   ),
                                 ),
-                                const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                                Icon(Icons.arrow_forward_ios, size: 16, color: isDark ? Colors.white38 : Colors.grey),
                               ],
                             ),
                           ),
@@ -324,7 +308,7 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
 
                       const SizedBox(height: 40),
 
-                      // -- BUTTONS --
+                      // BUTTONS
                       Row(
                         children: [
                           Expanded(
@@ -332,24 +316,19 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
                               onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const HowToApplyScreen())),
                               style: OutlinedButton.styleFrom(
                                 padding: const EdgeInsets.symmetric(vertical: 16),
-                                side: const BorderSide(color: PageColors.primary),
+                                side: BorderSide(color: isDark ? AppColors.secondary : AppColors.primary),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               ),
-                              child: const Text("How to Apply", style: TextStyle(color: PageColors.primary, fontWeight: FontWeight.bold)),
+                              child: Text("How to Apply", style: TextStyle(color: isDark ? AppColors.secondary : AppColors.primary, fontWeight: FontWeight.bold)),
                             ),
                           ),
                           const SizedBox(width: 15),
                           Expanded(
-                            child: ElevatedButton(
+                            child: ModernButton(
+                              text: "Apply Now",
                               onPressed: isApplying ? null : _handleApply,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: PageColors.primary,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              ),
-                              child: isApplying
-                                  ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                                  : const Text("Apply Now", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                              isLoading: isApplying,
+                              height: 52,
                             ),
                           ),
                         ],
@@ -366,13 +345,13 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
     );
   }
 
-  // --- WIDGETS ---
+  // --- REUSABLE STYLED WIDGETS ---
 
-  Widget _buildIconBtn(IconData icon, VoidCallback onTap, {Color iconColor = Colors.white}) {
+  Widget _buildIconBtn(IconData icon, VoidCallback onTap, bool isDark, {Color iconColor = Colors.white}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.15),
           borderRadius: BorderRadius.circular(12),
@@ -382,13 +361,13 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
     );
   }
 
-  Widget _buildGridItem(IconData icon, String label, String? value) {
+  Widget _buildGridItem(IconData icon, String label, String? value, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFAFAFA),
+        color: isDark ? AppColors.cardDark : const Color(0xFFFAFAFA),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade100),
+        border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade100),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -396,49 +375,48 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: PageColors.background,
+              color: isDark ? Colors.white10 : AppColors.background,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, size: 20, color: PageColors.primary),
+            child: Icon(icon, size: 20, color: isDark ? AppColors.secondary : AppColors.primary),
           ),
           const SizedBox(height: 12),
-          Text(label, style: const TextStyle(fontSize: 12, color: PageColors.textSecondary, fontWeight: FontWeight.w500)),
+          Text(label, style: TextStyle(fontSize: 11, color: isDark ? Colors.white38 : AppColors.textSecondary, fontWeight: FontWeight.bold)),
           const SizedBox(height: 4),
           Text(
             value ?? "N/A",
-            style: const TextStyle(fontSize: 14, fontFamily: 'serif', fontWeight: FontWeight.bold, color: PageColors.textPrimary),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+            style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: isDark ? Colors.white : AppColors.textPrimary),
+            maxLines: 1, overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title) {
+  Widget _buildSectionHeader(String title, bool isDark) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Text(
         title,
-        style: const TextStyle(fontSize: 18, fontFamily: 'serif', fontWeight: FontWeight.bold, color: PageColors.primary),
+        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? AppColors.secondary : AppColors.primary),
       ),
     );
   }
 
-  Widget _buildExpansionTile({required String title, required IconData icon, required List<Widget> children}) {
+  Widget _buildExpansionTile({required String title, required IconData icon, required bool isDark, required List<Widget> children}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
-          border: Border.all(color: Colors.grey.shade200),
+          color: isDark ? AppColors.cardDark : Colors.white,
+          border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Theme(
           data: ThemeData().copyWith(dividerColor: Colors.transparent),
           child: ExpansionTile(
-            leading: Icon(icon, color: PageColors.primary),
-            title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: PageColors.textPrimary)),
+            leading: Icon(icon, color: isDark ? AppColors.secondary : AppColors.primary),
+            title: Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: isDark ? Colors.white : AppColors.textPrimary)),
             childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
             expandedCrossAxisAlignment: CrossAxisAlignment.start,
             children: children,
@@ -448,14 +426,14 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _buildDetailRow(String label, String value, bool isDark) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: RichText(
         text: TextSpan(
-          style: const TextStyle(color: Colors.black87, fontSize: 14),
+          style: TextStyle(color: isDark ? Colors.white70 : Colors.black87, fontSize: 14),
           children: [
-            TextSpan(text: "$label: ", style: const TextStyle(fontWeight: FontWeight.bold, color: PageColors.textPrimary)),
+            TextSpan(text: "$label: ", style: TextStyle(fontWeight: FontWeight.bold, color: isDark ? AppColors.secondary : AppColors.textPrimary)),
             TextSpan(text: value),
           ],
         ),
@@ -463,14 +441,14 @@ class _ScholarshipDetailsPageState extends State<ScholarshipDetailsPage> {
     );
   }
 
-  Widget _buildBullet(String text) {
+  Widget _buildBullet(String text, bool isDark) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("• ", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: PageColors.primary)),
-          Expanded(child: Text(text, style: const TextStyle(height: 1.4))),
+          Text("• ", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isDark ? AppColors.secondary : AppColors.primary)),
+          Expanded(child: Text(text, style: TextStyle(color: isDark ? Colors.white70 : Colors.black87, height: 1.4))),
         ],
       ),
     );

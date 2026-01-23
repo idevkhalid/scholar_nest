@@ -2,6 +2,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../constants/colors.dart';
 import '../services/api_service.dart';
+import '../widgets/modern_button.dart';
+import '../widgets/modern_text_field.dart';
 
 class UserProfileScreen extends StatefulWidget {
   const UserProfileScreen({super.key});
@@ -54,14 +56,8 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   String _formatDate(String? dateString) {
     if (dateString == null || dateString.isEmpty) return "";
     try {
-      // If it has a space (e.g. 2000-10-10 00:00:00), split and take first part
-      if (dateString.contains(' ')) {
-        return dateString.split(' ')[0];
-      }
-      // If it has a T (e.g. 2000-10-10T00:00:00), split and take first part
-      if (dateString.contains('T')) {
-        return dateString.split('T')[0];
-      }
+      if (dateString.contains(' ')) return dateString.split(' ')[0];
+      if (dateString.contains('T')) return dateString.split('T')[0];
       return dateString;
     } catch (e) {
       return dateString;
@@ -99,10 +95,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   void _populateFields(Map<String, dynamic> data) {
     _phoneController.text = data['phone'] ?? '';
     _whatsappController.text = data['whatsapp'] ?? '';
-
-    // --- APPLY DATE FORMATTING HERE ---
     _dobController.text = _formatDate(data['date_of_birth']);
-
     _nationalityController.text = data['nationality'] ?? 'Pakistani';
 
     String? rawGender = data['gender'];
@@ -133,15 +126,11 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     _githubController.text = data['github_url'] ?? '';
     _portfolioController.text = data['portfolio_url'] ?? '';
 
-    // --- FIX FOR BRACKETS IN SKILLS & LANGUAGES ---
     if (data['skills'] != null) {
       if (data['skills'] is List) {
         _skillsController.text = (data['skills'] as List).join(', ');
       } else {
-        _skillsController.text = data['skills'].toString()
-            .replaceAll('[', '')
-            .replaceAll(']', '')
-            .replaceAll('"', '');
+        _skillsController.text = data['skills'].toString().replaceAll('[', '').replaceAll(']', '').replaceAll('"', '');
       }
     }
 
@@ -149,10 +138,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
       if (data['languages'] is List) {
         _languagesController.text = (data['languages'] as List).join(', ');
       } else {
-        _languagesController.text = data['languages'].toString()
-            .replaceAll('[', '')
-            .replaceAll(']', '')
-            .replaceAll('"', '');
+        _languagesController.text = data['languages'].toString().replaceAll('[', '').replaceAll(']', '').replaceAll('"', '');
       }
     }
   }
@@ -204,10 +190,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // --- THEME VARIABLES ---
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final backgroundColor = isDarkMode ? const Color(0xFF121212) : const Color(0xFFF8F9FD);
+    final containerColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    final primaryText = isDarkMode ? Colors.white : Colors.black87;
     final double topPadding = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FD), // Very light grey background
+      backgroundColor: backgroundColor,
       body: Stack(
         children: [
           // Background Gradient at top only
@@ -218,15 +209,15 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
 
           Column(
             children: [
-              _buildHeader(topPadding),
+              _buildHeader(topPadding, isDarkMode, containerColor, primaryText),
 
               Expanded(
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
                     : Container(
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF8F9FD),
-                    borderRadius: BorderRadius.only(
+                  decoration: BoxDecoration(
+                    color: backgroundColor,
+                    borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(30),
                       topRight: Radius.circular(30),
                     ),
@@ -237,71 +228,62 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (_completionPercentage < 100 && !_isEditing) _buildCompletionCard(),
+                        if (_completionPercentage < 100 && !_isEditing)
+                          _buildCompletionCard(isDarkMode),
+
                         const SizedBox(height: 20),
 
                         // --- SECTIONS ---
                         _buildSection("Personal Info", [
-                          _buildField("Phone Number", _phoneController, icon: Icons.phone, type: TextInputType.phone),
-                          _buildField("WhatsApp", _whatsappController, icon: Icons.message, type: TextInputType.phone),
-                          _buildField("Date of Birth", _dobController, icon: Icons.calendar_today, isDate: true),
-                          _buildDropdown("Gender", ["male", "female", "other"], _selectedGender, (v) => setState(() => _selectedGender = v)),
-                          _buildField("Nationality", _nationalityController, icon: Icons.flag),
-                        ]),
+                          _buildField("Phone Number", _phoneController, icon: Icons.phone, type: TextInputType.phone, isDarkMode: isDarkMode),
+                          _buildField("WhatsApp", _whatsappController, icon: Icons.message, type: TextInputType.phone, isDarkMode: isDarkMode),
+                          _buildField("Date of Birth", _dobController, icon: Icons.calendar_today, isDate: true, isDarkMode: isDarkMode),
+                          _buildDropdown("Gender", ["male", "female", "other"], _selectedGender, (v) => setState(() => _selectedGender = v), isDarkMode),
+                          _buildField("Nationality", _nationalityController, icon: Icons.flag, isDarkMode: isDarkMode),
+                        ], isDarkMode, primaryText, containerColor),
 
                         _buildSection("Address", [
-                          _buildField("Address Line 1", _address1Controller, icon: Icons.home),
-                          _buildField("Address Line 2", _address2Controller, icon: Icons.home_work_outlined),
+                          _buildField("Address Line 1", _address1Controller, icon: Icons.home, isDarkMode: isDarkMode),
+                          _buildField("Address Line 2", _address2Controller, icon: Icons.home_work_outlined, isDarkMode: isDarkMode),
                           Row(
                             children: [
-                              Expanded(child: _buildField("City", _cityController, icon: Icons.location_city)),
+                              Expanded(child: _buildField("City", _cityController, icon: Icons.location_city, isDarkMode: isDarkMode)),
                               const SizedBox(width: 15),
-                              Expanded(child: _buildField("State", _stateController, icon: Icons.map)),
+                              Expanded(child: _buildField("State", _stateController, icon: Icons.map, isDarkMode: isDarkMode)),
                             ],
                           ),
-                          _buildField("Country", _countryController, icon: Icons.public),
-                        ]),
+                          _buildField("Country", _countryController, icon: Icons.public, isDarkMode: isDarkMode),
+                        ], isDarkMode, primaryText, containerColor),
 
                         _buildSection("Education", [
-                          _buildDropdown("Education Level", ["matric", "intermediate", "bachelors", "masters", "phd"], _selectedEducation, (v) => setState(() => _selectedEducation = v)),
-                          _buildField("Degree Title", _degreeTitleController, icon: Icons.book),
-                          _buildField("Institution", _institutionController, icon: Icons.account_balance),
+                          _buildDropdown("Education Level", ["matric", "intermediate", "bachelors", "masters", "phd"], _selectedEducation, (v) => setState(() => _selectedEducation = v), isDarkMode),
+                          _buildField("Degree Title", _degreeTitleController, icon: Icons.book, isDarkMode: isDarkMode),
+                          _buildField("Institution", _institutionController, icon: Icons.account_balance, isDarkMode: isDarkMode),
                           Row(
                             children: [
-                              Expanded(child: _buildField("Grad Year", _gradYearController, type: TextInputType.number, icon: Icons.date_range)),
+                              Expanded(child: _buildField("Grad Year", _gradYearController, type: TextInputType.number, icon: Icons.date_range, isDarkMode: isDarkMode)),
                               const SizedBox(width: 15),
-                              Expanded(child: _buildField("CGPA", _cgpaController, type: TextInputType.number, icon: Icons.grade)),
+                              Expanded(child: _buildField("CGPA", _cgpaController, type: TextInputType.number, icon: Icons.grade, isDarkMode: isDarkMode)),
                             ],
                           ),
-                        ]),
+                        ], isDarkMode, primaryText, containerColor),
 
                         _buildSection("Professional", [
-                          _buildField("Skills", _skillsController, icon: Icons.code, hint: "Flutter, Java, Python"),
-                          _buildField("Languages", _languagesController, icon: Icons.translate, hint: "English, Urdu"),
-                          _buildField("LinkedIn URL", _linkedinController, icon: Icons.link),
-                          _buildField("Github URL", _githubController, icon: Icons.code),
-                          _buildField("Portfolio URL", _portfolioController, icon: Icons.web),
-                          _buildField("About Me", _aboutMeController, icon: Icons.person, maxLines: 4),
-                        ]),
+                          _buildField("Skills", _skillsController, icon: Icons.code, hint: "Flutter, Java, Python", isDarkMode: isDarkMode),
+                          _buildField("Languages", _languagesController, icon: Icons.translate, hint: "English, Urdu", isDarkMode: isDarkMode),
+                          _buildField("LinkedIn URL", _linkedinController, icon: Icons.link, isDarkMode: isDarkMode),
+                          _buildField("Github URL", _githubController, icon: Icons.code, isDarkMode: isDarkMode),
+                          _buildField("Portfolio URL", _portfolioController, icon: Icons.web, isDarkMode: isDarkMode),
+                          _buildField("About Me", _aboutMeController, icon: Icons.person, maxLines: 4, isDarkMode: isDarkMode),
+                        ], isDarkMode, primaryText, containerColor),
 
                         const SizedBox(height: 30),
 
                         if (_isEditing)
-                          SizedBox(
-                            width: double.infinity,
-                            height: 55,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                elevation: 5,
-                                shadowColor: AppColors.primary.withOpacity(0.4),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                              ),
-                              onPressed: _isSaving ? null : _saveProfile,
-                              child: _isSaving
-                                  ? const CircularProgressIndicator(color: Colors.white)
-                                  : const Text("Save Changes", style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold)),
-                            ),
+                          ModernButton(
+                            text: "Save Changes",
+                            onPressed: _isSaving ? null : _saveProfile,
+                            isLoading: _isSaving,
                           ),
                         const SizedBox(height: 50),
                       ],
@@ -317,10 +299,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
   }
 
   // ----------------------------------------------------------------
-  // UI HELPERS (Modern Styling)
+  // UI HELPERS (Theme Aware)
   // ----------------------------------------------------------------
 
-  Widget _buildSection(String title, List<Widget> children) {
+  Widget _buildSection(String title, List<Widget> children, bool isDarkMode, Color textColor, Color cardColor) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -328,17 +310,21 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           padding: const EdgeInsets.only(left: 5, bottom: 15, top: 10),
           child: Text(
             title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
           ),
         ),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: cardColor,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
-              BoxShadow(color: Colors.grey.withOpacity(0.08), blurRadius: 15, offset: const Offset(0, 5)),
+              BoxShadow(
+                  color: isDarkMode ? Colors.black.withOpacity(0.3) : Colors.grey.withOpacity(0.08),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5)
+              ),
             ],
           ),
           child: Column(
@@ -350,7 +336,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _buildField(String label, TextEditingController controller, {IconData? icon, TextInputType type = TextInputType.text, int maxLines = 1, String? hint, bool isDate = false}) {
+  Widget _buildField(String label, TextEditingController controller, {IconData? icon, TextInputType type = TextInputType.text, int maxLines = 1, String? hint, bool isDate = false, required bool isDarkMode}) {
     // VIEW MODE
     if (!_isEditing) {
       if (controller.text.isEmpty) return const SizedBox.shrink();
@@ -361,7 +347,10 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
           children: [
             Container(
               padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10)
+              ),
               child: Icon(icon ?? Icons.circle, color: AppColors.primary, size: 20),
             ),
             const SizedBox(width: 15),
@@ -369,9 +358,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[500], fontWeight: FontWeight.w600)),
+                  Text(label, style: TextStyle(fontSize: 12, color: isDarkMode ? Colors.grey[400] : Colors.grey[500], fontWeight: FontWeight.w600)),
                   const SizedBox(height: 4),
-                  Text(controller.text, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.black87)),
+                  Text(controller.text, style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: isDarkMode ? Colors.white : Colors.black87)),
                 ],
               ),
             ),
@@ -381,52 +370,46 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     }
 
     // EDIT MODE
+    // Note: ModernTextField should handle its own internal theming,
+    // but if it relies on transparency, the Scaffold background helps.
     return Padding(
       padding: const EdgeInsets.only(bottom: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // LABEL IS ABOVE THE INPUT (Static)
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey[700])),
-          ),
-          // INPUT FIELD
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.grey[50],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
-            ),
-            child: TextField(
-              controller: controller,
-              keyboardType: type,
-              maxLines: maxLines,
-              readOnly: isDate,
-              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-              onTap: isDate
-                  ? () async {
-                DateTime? picked = await showDatePicker(context: context, initialDate: DateTime(2000), firstDate: DateTime(1950), lastDate: DateTime.now());
-                if (picked != null) {
-                  controller.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
-                }
+      child: ModernTextField(
+        controller: controller,
+        hintText: label,
+        labelText: label,
+        prefixIcon: icon,
+        maxLines: maxLines,
+        keyboardType: type,
+        readOnly: isDate,
+        onTap: isDate
+            ? () async {
+          DateTime? picked = await showDatePicker(
+              context: context,
+              initialDate: DateTime(2000),
+              firstDate: DateTime(1950),
+              lastDate: DateTime.now(),
+              builder: (context, child) {
+                return Theme(
+                  data: isDarkMode ? ThemeData.dark().copyWith(
+                    colorScheme: ColorScheme.dark(primary: AppColors.primary, onPrimary: Colors.white, surface: const Color(0xFF1E1E1E), onSurface: Colors.white),
+                  ) : ThemeData.light().copyWith(
+                    colorScheme: ColorScheme.light(primary: AppColors.primary),
+                  ),
+                  child: child!,
+                );
               }
-                  : null,
-              decoration: InputDecoration(
-                hintText: hint ?? "Enter $label",
-                hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
-                prefixIcon: icon != null ? Icon(icon, color: Colors.grey[400], size: 20) : null,
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 15, vertical: 15),
-              ),
-            ),
-          ),
-        ],
+          );
+          if (picked != null) {
+            controller.text = "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
+          }
+        }
+            : null,
       ),
     );
   }
 
-  Widget _buildDropdown(String label, List<String> items, String? selectedValue, Function(String?) onChanged) {
+  Widget _buildDropdown(String label, List<String> items, String? selectedValue, Function(String?) onChanged, bool isDarkMode) {
     if (!_isEditing) {
       if (selectedValue == null || selectedValue.isEmpty) return const SizedBox.shrink();
       return Container(
@@ -443,9 +426,9 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[500], fontWeight: FontWeight.w600)),
+                  Text(label, style: TextStyle(fontSize: 12, color: isDarkMode ? Colors.grey[400] : Colors.grey[500], fontWeight: FontWeight.w600)),
                   const SizedBox(height: 4),
-                  Text(selectedValue[0].toUpperCase() + selectedValue.substring(1), style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                  Text(selectedValue[0].toUpperCase() + selectedValue.substring(1), style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: isDarkMode ? Colors.white : Colors.black87)),
                 ],
               ),
             ),
@@ -461,21 +444,23 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.only(left: 4, bottom: 8),
-            child: Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.grey[700])),
+            child: Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: isDarkMode ? Colors.grey[400] : Colors.grey[700])),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
-              color: Colors.grey[50],
+              color: isDarkMode ? const Color(0xFF2C2C2C) : Colors.grey[50],
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.grey.shade200),
+              border: Border.all(color: isDarkMode ? Colors.grey[700]! : Colors.grey.shade200),
             ),
             child: DropdownButtonHideUnderline(
               child: DropdownButton<String>(
                 value: selectedValue,
                 isExpanded: true,
+                dropdownColor: isDarkMode ? const Color(0xFF2C2C2C) : Colors.white,
                 hint: Text("Select $label", style: TextStyle(color: Colors.grey[400], fontSize: 14)),
                 icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey[600]),
+                style: TextStyle(color: isDarkMode ? Colors.white : Colors.black, fontSize: 16),
                 items: items.map((String value) {
                   return DropdownMenuItem<String>(
                     value: value,
@@ -491,7 +476,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _buildHeader(double topPadding) {
+  Widget _buildHeader(double topPadding, bool isDarkMode, Color cardColor, Color primaryText) {
     return Padding(
       padding: EdgeInsets.only(top: topPadding + 10, left: 20, right: 20, bottom: 20),
       child: Row(
@@ -509,14 +494,23 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: _isEditing ? Colors.white : Colors.white.withOpacity(0.2),
+                // When editing, the button becomes solid.
+                // In Dark Mode: Dark Grey BG. In Light Mode: White BG.
+                color: _isEditing ? cardColor : Colors.white.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Row(
                 children: [
-                  Icon(_isEditing ? Icons.close : Icons.edit, size: 16, color: _isEditing ? AppColors.primary : Colors.white),
+                  Icon(_isEditing ? Icons.close : Icons.edit, size: 16, color: _isEditing ? (isDarkMode ? Colors.white : AppColors.primary) : Colors.white),
                   const SizedBox(width: 6),
-                  Text(_isEditing ? "Cancel" : "Edit", style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: _isEditing ? AppColors.primary : Colors.white)),
+                  Text(
+                      _isEditing ? "Cancel" : "Edit",
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: _isEditing ? (isDarkMode ? Colors.white : AppColors.primary) : Colors.white
+                      )
+                  ),
                 ],
               ),
             ),
@@ -526,21 +520,26 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
     );
   }
 
-  Widget _buildCompletionCard() {
+  Widget _buildCompletionCard(bool isDarkMode) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: [Colors.orange.shade100, Colors.orange.shade50]),
+        // Darker orange bg for dark mode, light orange for light mode
+        gradient: LinearGradient(
+            colors: isDarkMode
+                ? [Colors.orange.withOpacity(0.15), Colors.orange.withOpacity(0.05)]
+                : [Colors.orange.shade100, Colors.orange.shade50]
+        ),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.orange.shade200),
+        border: Border.all(color: isDarkMode ? Colors.orange.withOpacity(0.3) : Colors.orange.shade200),
       ),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text("Profile Strength", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange[900])),
-              Text("$_completionPercentage%", style: TextStyle(fontWeight: FontWeight.bold, color: Colors.orange[900])),
+              Text("Profile Strength", style: TextStyle(fontWeight: FontWeight.bold, color: isDarkMode ? Colors.orange[300] : Colors.orange[900])),
+              Text("$_completionPercentage%", style: TextStyle(fontWeight: FontWeight.bold, color: isDarkMode ? Colors.orange[300] : Colors.orange[900])),
             ],
           ),
           const SizedBox(height: 10),
@@ -548,7 +547,7 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             borderRadius: BorderRadius.circular(10),
             child: LinearProgressIndicator(
               value: _completionPercentage / 100,
-              backgroundColor: Colors.orange[100],
+              backgroundColor: isDarkMode ? Colors.orange.withOpacity(0.2) : Colors.orange[100],
               color: Colors.orange[700],
               minHeight: 8,
             ),

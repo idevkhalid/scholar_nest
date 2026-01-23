@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import '../services/api_service.dart';
 import '../constants/colors.dart';
 import 'home_screen.dart';
+import '../widgets/modern_text_field.dart';
+import '../widgets/modern_button.dart';
 
 class SetNewPasswordScreen extends StatefulWidget {
   final String email;
@@ -166,10 +168,17 @@ class _SetNewPasswordScreenState extends State<SetNewPasswordScreen> {
 
                   // Form Card
                   Container(
-                    padding: const EdgeInsets.all(24),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(20),
+                      color: Colors.white.withOpacity(0.95),
+                      borderRadius: BorderRadius.circular(30),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withOpacity(0.15),
+                          blurRadius: 40,
+                          offset: const Offset(0, 15),
+                        ),
+                      ],
                     ),
                     child: Column(
                       children: [
@@ -183,60 +192,36 @@ class _SetNewPasswordScreenState extends State<SetNewPasswordScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 25),
+                        const SizedBox(height: 30),
 
                         // New Password
-                        _passwordField(
-                          "New Password",
-                          newPassCtrl,
-                          _showNewPass,
-                              () => setState(() => _showNewPass = !_showNewPass),
+                        ModernTextField(
+                          controller: newPassCtrl,
+                          labelText: "New Password",
+                          hintText: "••••••••",
+                          prefixIcon: Icons.lock_outline,
+                          isPassword: true,
                         ),
-                        const SizedBox(height: 15),
+                        const SizedBox(height: 20),
 
                         // Confirm Password
-                        _passwordField(
-                          "Confirm Password",
-                          confirmPassCtrl,
-                          _showConfirmPass,
-                              () => setState(() => _showConfirmPass = !_showConfirmPass),
+                        ModernTextField(
+                          controller: confirmPassCtrl,
+                          labelText: "Confirm Password",
+                          hintText: "••••••••",
+                          prefixIcon: Icons.lock_outline,
+                          isPassword: true,
                         ),
-                        const SizedBox(height: 25),
+                        const SizedBox(height: 30),
 
                         // Confirm Button
-                        SizedBox(
-                          width: double.infinity,
-                          height: 50,
-                          child: ElevatedButton(
-                            onPressed: _isLoading ? null : _confirm,
-                            style: ElevatedButton.styleFrom(
-                              padding: EdgeInsets.zero,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            child: Ink(
-                              decoration: BoxDecoration(
-                                gradient: AppColors.primaryGradient,
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Container(
-                                alignment: Alignment.center,
-                                child: _isLoading
-                                    ? const CircularProgressIndicator(color: Colors.white)
-                                    : const Text(
-                                  'Confirm',
-                                  style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white),
-                                ),
-                              ),
-                            ),
-                          ),
+                        ModernButton(
+                          text: "Confirm",
+                          onPressed: _isLoading ? null : _confirm,
+                          isLoading: _isLoading,
                         ),
 
                         const SizedBox(height: 15),
-
-
                       ],
                     ),
                   ),
@@ -282,7 +267,7 @@ class _SetNewPasswordScreenState extends State<SetNewPasswordScreen> {
           keyboardType: TextInputType.number,
           textAlign: TextAlign.center,
           maxLength: 1,
-          style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.primary), // Added color
           decoration: const InputDecoration(counterText: '', border: InputBorder.none),
           onChanged: (v) => _onOtpChanged(index, v),
           inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -291,23 +276,5 @@ class _SetNewPasswordScreenState extends State<SetNewPasswordScreen> {
     );
   }
 
-  Widget _passwordField(String label, TextEditingController ctrl, bool visible, VoidCallback toggle) {
-    return TextField(
-      controller: ctrl,
-      obscureText: !visible,
-      style: const TextStyle(color: Colors.black),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.black),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: AppColors.primary)),
-        suffixIcon: IconButton(
-          icon: Icon(visible ? Icons.visibility : Icons.visibility_off, color: Colors.black),
-          onPressed: toggle,
-        ),
-      ),
-    );
-  }
+
 }

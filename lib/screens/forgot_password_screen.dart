@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
 import 'forgot_password_otp_screen.dart';
-import '../constants/colors.dart'; // AppColors
+import '../constants/colors.dart';
+import '../widgets/modern_text_field.dart';
+import '../widgets/modern_button.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -38,11 +41,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => SetNewPasswordScreen(email: email), // only email is required now
+          builder: (_) => SetNewPasswordScreen(email: email),
         ),
       );
-
-
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(response["message"] ?? "Failed to send OTP")),
@@ -52,147 +53,146 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
+    final size = MediaQuery.of(context).size;
 
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: AppColors.backgroundGradient,
+      backgroundColor: const Color(0xFFFAFAFA),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white),
+          onPressed: () => Navigator.pop(context),
         ),
-        child: SafeArea(
-          child: GestureDetector(
-            onTap: () => FocusScope.of(context).unfocus(),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                    child: IntrinsicHeight(
-                      child: Column(
-                        children: [
-                          const SizedBox(height: 40),
-
-                          // --- Circular Logo (Updated Professional Style) ---
-                          ClipOval(
-                            child: Image.asset(
-                              'assets/logo.jpeg',
-                              width: width * 0.40,
-                              height: width * 0.40,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-
-                          const SizedBox(height: 16),
-                          Text(
-                            "Forgot Password",
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            "Enter your email to receive a verification code",
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: AppColors.textSecondary?.withOpacity(0.8),
-                            ),
-                          ),
-
-                          const SizedBox(height: 40),
-
-                          // --- Card Form ---
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            child: Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(25),
-                              decoration: BoxDecoration(
-                                color: AppColors.cardBackground,
-                                borderRadius: BorderRadius.circular(20),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.grey.withOpacity(0.2),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 5),
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // Email Field
-                                  TextField(
-                                    controller: emailController,
-                                    keyboardType: TextInputType.emailAddress,
-                                    decoration: InputDecoration(
-                                      labelText: "Email",
-                                      hintText: "example@gmail.com",
-                                      floatingLabelBehavior: FloatingLabelBehavior.always,
-                                      border: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      focusedBorder: OutlineInputBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                        borderSide: BorderSide(color: AppColors.primary),
-                                      ),
-                                      prefixIcon: Icon(
-                                        Icons.email_outlined,
-                                        color: AppColors.primary,
-                                      ),
-                                      contentPadding: const EdgeInsets.symmetric(
-                                          horizontal: 12, vertical: 18),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 30),
-
-                                  // Confirm Button
-                                  SizedBox(
-                                    width: double.infinity,
-                                    child: ElevatedButton(
-                                      onPressed: isLoading ? null : sendResetRequest,
-                                      style: ElevatedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(vertical: 16),
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12),
-                                        ),
-                                        backgroundColor: AppColors.primary,
-                                      ),
-                                      child: isLoading
-                                          ? const SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: CircularProgressIndicator(
-                                          color: Colors.white,
-                                          strokeWidth: 2,
-                                        ),
-                                      )
-                                          : const Text(
-                                        "Send OTP",
-                                        style: TextStyle(
-                                            fontSize: 16, color: Colors.white),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-
-                          const Spacer(),
-                        ],
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // --- HEADER ---
+            Stack(
+              children: [
+                ClipPath(
+                  clipper: HeaderClipper(),
+                  child: Container(
+                    height: size.height * 0.35,
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      gradient: AppColors.primaryGradient,
+                    ),
+                    child: SafeArea(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 20), // Spacing for AppBar
+                            Container(
+                               padding: const EdgeInsets.all(8),
+                               decoration: BoxDecoration(
+                                 color: Colors.white,
+                                 shape: BoxShape.circle,
+                                 boxShadow: [
+                                   BoxShadow(
+                                     color: Colors.black.withOpacity(0.1),
+                                     blurRadius: 10,
+                                     offset: const Offset(0, 5),
+                                   ),
+                                 ],
+                               ),
+                               child: ClipOval(
+                                 child: Image.asset(
+                                   'assets/logo.jpeg',
+                                   width: 60,
+                                   height: 60,
+                                   fit: BoxFit.cover,
+                                 ),
+                               ),
+                             ),
+                             const Spacer(),
+                             Text(
+                               "Forgot Password?",
+                               style: GoogleFonts.poppins(
+                                 fontSize: 28,
+                                 fontWeight: FontWeight.bold,
+                                 color: Colors.white,
+                               ),
+                             ),
+                             Text(
+                               "Enter your email to receive a reset code",
+                               style: GoogleFonts.poppins(
+                                 fontSize: 14,
+                                 color: Colors.white.withOpacity(0.9),
+                               ),
+                             ),
+                             const SizedBox(height: 40),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                );
-              },
+                ),
+              ],
             ),
-          ),
+
+            // --- FORM ---
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Transform.translate(
+                offset: const Offset(0, -40),
+                child: Container(
+                  padding: const EdgeInsets.all(30),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(30),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.1),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      ModernTextField(
+                        controller: emailController,
+                        labelText: "Email Address",
+                        hintText: "example@gmail.com",
+                        prefixIcon: Icons.email_outlined,
+                        keyboardType: TextInputType.emailAddress,
+                      ),
+                      const SizedBox(height: 30),
+                      ModernButton(
+                        text: "Send Code",
+                        onPressed: isLoading ? null : sendResetRequest,
+                        isLoading: isLoading,
+                        icon: Icons.send_rounded,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+}
+
+class HeaderClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    Path path = Path();
+    path.lineTo(0, size.height - 50);
+    path.quadraticBezierTo(
+        size.width / 2, size.height, size.width, size.height - 50);
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

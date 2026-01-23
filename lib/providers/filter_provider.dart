@@ -23,4 +23,6 @@ class FilterProvider with ChangeNotifier {
     _major = value;
     notifyListeners();
   }
+
+  void reset() {}
 }

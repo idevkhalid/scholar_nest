@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../constants/colors.dart';
 import '../services/api_service.dart';
 
@@ -18,81 +19,131 @@ class ProfessorDetailScreen extends StatefulWidget {
 }
 
 class _ProfessorDetailScreenState extends State<ProfessorDetailScreen> {
+  // Data State
   bool _isLoading = true;
   Map<String, dynamic>? _professor;
   String? _errorMessage;
 
+  // UI State
+  ScrollController? _scrollController;
+  bool _showNameInHeader = false;
+
   @override
   void initState() {
     super.initState();
+
+    // 1. Initialize Controller
+    _scrollController = ScrollController();
+
+    // 2. Add Listener safely
+    _scrollController?.addListener(() {
+      if (!mounted || _scrollController == null) return;
+      if (_scrollController!.hasClients) {
+        bool shouldShowName = _scrollController!.offset > 150;
+        if (shouldShowName != _showNameInHeader) {
+          setState(() {
+            _showNameInHeader = shouldShowName;
+          });
+        }
+      }
+    });
+
+    // 3. Fetch Data
     _fetchProfessorDetails();
+  }
+
+  @override
+  void dispose() {
+    _scrollController?.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchProfessorDetails() async {
     final response = await ApiService.getProfessorById(widget.professorId);
-
     if (mounted) {
-      if (response['status'] == 'success') {
+      if (response['success'] == true || response['status'] == 'success') {
         setState(() {
           _professor = response['data'];
           _isLoading = false;
         });
       } else {
         setState(() {
-          _errorMessage = response['message'];
+          _errorMessage = response['message'] ?? "Unknown error occurred";
           _isLoading = false;
         });
       }
     }
   }
 
+  Future<void> _launchUrl(String? urlString) async {
+    if (urlString == null || urlString.isEmpty) return;
+    final Uri uri = Uri.parse(urlString.startsWith('http') ? urlString : 'https://$urlString');
+    try {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      debugPrint("Could not launch $uri");
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final scrollController = _scrollController ?? ScrollController();
     final double topPadding = MediaQuery.of(context).padding.top;
+
+    // Theme Helpers
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final textColor = Theme.of(context).textTheme.bodyLarge?.color ?? Colors.black87;
 
     return Scaffold(
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppColors.backgroundGradient,
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          // Use gradient in Light Mode, solid dark color in Dark Mode for better readability
+          gradient: isDarkMode ? null : AppColors.backgroundGradient,
+          color: isDarkMode ? Theme.of(context).scaffoldBackgroundColor : null,
         ),
         child: Stack(
           children: [
-            // ---------------- CONTENT SCROLL VIEW ----------------
+            // ---------------- LAYER 1: SCROLLABLE CONTENT ----------------
             Positioned.fill(
               child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
+                  ? Center(child: CircularProgressIndicator(color: AppColors.primary))
                   : _errorMessage != null
-                  ? Center(
-                  child: Text(_errorMessage!,
-                      style: const TextStyle(color: Colors.red)))
+                  ? Center(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red)))
                   : SingleChildScrollView(
+                controller: scrollController,
                 padding: EdgeInsets.only(
-                  // INCREASED THIS VALUE TO 120 FOR SPACING
-                    top: topPadding + 120,
-                    left: 20,
-                    right: 20,
-                    bottom: 30),
+                  top: topPadding + 80,
+                  left: 20,
+                  right: 20,
+                  bottom: 40,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildProfileHeader(),
+                    _buildProfileHeader(isDarkMode, textColor),
                     const SizedBox(height: 20),
-                    _buildStatusSection(),
+                    _buildStatusSection(isDarkMode),
                     const SizedBox(height: 20),
-                    _buildInfoSection(),
+                    _buildContactSection(isDarkMode, textColor),
                     const SizedBox(height: 20),
-                    if (_professor!['research_interests_array'] != null)
-                      _buildResearchSection(),
+                    _buildResearchSection(isDarkMode, textColor),
                     const SizedBox(height: 20),
-                    if (_professor!['scholarship_details'] != null)
-                      _buildSectionTitle("Scholarship Details",
-                          _professor!['scholarship_details']),
+                    if (_professor!['scholarship_details'] != null &&
+                        _professor!['scholarship_details'].toString().isNotEmpty)
+                      _buildSectionTitle(
+                          "Scholarship Details",
+                          _professor!['scholarship_details'],
+                          isDarkMode,
+                          textColor
+                      ),
                   ],
                 ),
               ),
             ),
 
-            // ---------------- GLASS HEADER (FIXED TOP) ----------------
+            // ---------------- LAYER 2: GLASS HEADER ----------------
             Positioned(
               top: 0,
               left: 0,
@@ -103,14 +154,19 @@ class _ProfessorDetailScreenState extends State<ProfessorDetailScreen> {
                   bottomRight: Radius.circular(30),
                 ),
                 child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                   child: Container(
                     padding: EdgeInsets.only(
-                        top: topPadding + 15, bottom: 20, left: 10, right: 20),
+                        top: topPadding + 10, bottom: 15, left: 10, right: 20),
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withAlpha(120),
-                      border: Border(
-                          bottom: BorderSide(color: Colors.white.withAlpha(60))),
+                      color: AppColors.primary.withOpacity(0.85),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: Row(
                       children: [
@@ -118,16 +174,22 @@ class _ProfessorDetailScreenState extends State<ProfessorDetailScreen> {
                           icon: const Icon(Icons.arrow_back, color: Colors.white),
                           onPressed: () => Navigator.pop(context),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 5),
                         Expanded(
-                          child: Text(
-                            widget.professorName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 300),
+                            child: Text(
+                              _showNameInHeader
+                                  ? (_professor?['name'] ?? widget.professorName)
+                                  : "Professor Details",
+                              key: ValueKey<bool>(_showNameInHeader),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ),
@@ -143,177 +205,293 @@ class _ProfessorDetailScreenState extends State<ProfessorDetailScreen> {
     );
   }
 
-  // --- WIDGET: Main Profile Card ---
-  Widget _buildProfileHeader() {
+  // Helper to get card background color based on theme
+  Color _getCardColor(bool isDarkMode) {
+    return isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+  }
+
+  // --- WIDGET 1: Main Profile Card ---
+  Widget _buildProfileHeader(bool isDarkMode, Color textColor) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(25),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        color: _getCardColor(isDarkMode),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withAlpha(20),
-              blurRadius: 10,
-              offset: const Offset(0, 5))
+            color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          )
         ],
       ),
       child: Column(
         children: [
-          CircleAvatar(
-            radius: 40,
-            backgroundColor: AppColors.primary.withAlpha(30),
-            child: Icon(Icons.person, size: 40, color: AppColors.primary),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.primary.withOpacity(0.2), width: 2),
+            ),
+            child: CircleAvatar(
+              radius: 40,
+              backgroundColor: AppColors.primary.withOpacity(0.1),
+              child: Text(
+                _getInitials(_professor!['name']),
+                style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary
+                ),
+              ),
+            ),
           ),
           const SizedBox(height: 15),
           Text(
-            _professor!['name'] ?? "",
+            _professor!['name'] ?? "Professor",
             textAlign: TextAlign.center,
-            style: const TextStyle(
-                fontSize: 22, fontWeight: FontWeight.bold, color: Colors.black87),
+            style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                color: textColor
+            ),
           ),
+          const SizedBox(height: 5),
           Text(
             "${_professor!['designation'] ?? ''} • ${_professor!['department'] ?? ''}",
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 14, color: Colors.grey),
+            style: TextStyle(fontSize: 14, color: textColor.withOpacity(0.7)),
           ),
-          const SizedBox(height: 8),
-          Text(
-            "${_professor!['university_name'] ?? ''}, ${_professor!['university_country'] ?? ''}",
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                fontSize: 15,
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.05),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Text(
+              "${_professor!['university_name'] ?? ''}, ${_professor!['university_country'] ?? ''}",
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppColors.primary),
+                color: AppColors.primary,
+              ),
+            ),
           ),
         ],
       ),
     );
   }
 
-  // --- WIDGET: Status Tags ---
-  Widget _buildStatusSection() {
+  // --- WIDGET 2: Status Chips ---
+  Widget _buildStatusSection(bool isDarkMode) {
     List<Widget> statuses = [];
 
+    // Using withOpacity to ensure colors look good on both dark & light mode
     if (_professor!['accepting_students'] == true) {
-      statuses.add(_buildStatusChip(
-          "Accepting Students", Colors.green.shade100, Colors.green.shade800));
+      statuses.add(_buildStatusChip("Accepting Students", Colors.green.withOpacity(0.1), Colors.green));
+    } else {
+      statuses.add(_buildStatusChip("Not Accepting", Colors.red.withOpacity(0.1), Colors.red));
     }
+
     if (_professor!['offers_scholarships'] == true) {
-      statuses.add(_buildStatusChip("Scholarships Available",
-          Colors.amber.shade100, Colors.orange.shade800));
+      statuses.add(_buildStatusChip("Scholarships Available", Colors.orange.withOpacity(0.1), Colors.orange));
     }
 
     if (statuses.isEmpty) return const SizedBox.shrink();
-
     return Wrap(spacing: 10, runSpacing: 10, children: statuses);
   }
 
   Widget _buildStatusChip(String label, Color bg, Color text) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-          color: bg, borderRadius: BorderRadius.circular(20)),
-      child: Text(label,
-          style: TextStyle(color: text, fontWeight: FontWeight.bold, fontSize: 12)),
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: text.withOpacity(0.3)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(color: text, fontWeight: FontWeight.bold, fontSize: 13),
+      ),
     );
   }
 
-  // --- WIDGET: Contact & Web Info ---
-  Widget _buildInfoSection() {
+  // --- WIDGET 3: Contact Info ---
+  Widget _buildContactSection(bool isDarkMode, Color textColor) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-          color: Colors.white, borderRadius: BorderRadius.circular(20)),
+          color: _getCardColor(isDarkMode),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.03), blurRadius: 10, offset: const Offset(0, 4))]
+      ),
       child: Column(
         children: [
-          _buildInfoRow(Icons.email_outlined, "Email", _professor!['email']),
-          if (_professor!['personal_website'] != null) ...[
-            const Divider(),
-            _buildInfoRow(Icons.language, "Website", _professor!['personal_website']),
+          _buildInfoRow(Icons.email_outlined, "Email", _professor!['email'], textColor, isLink: false),
+
+          if (_professor!['personal_website'] != null && _professor!['personal_website'].toString().isNotEmpty) ...[
+            Divider(height: 25, color: Colors.grey.withOpacity(0.2)),
+            _buildInfoRow(Icons.language, "Website", _professor!['personal_website'], textColor, isLink: true),
           ],
-          if (_professor!['google_scholar_link'] != null) ...[
-            const Divider(),
-            _buildInfoRow(Icons.school, "Google Scholar", "View Profile"),
+
+          if (_professor!['google_scholar_link'] != null && _professor!['google_scholar_link'].toString().isNotEmpty) ...[
+            Divider(height: 25, color: Colors.grey.withOpacity(0.2)),
+            _buildInfoRow(Icons.school_outlined, "Google Scholar", "View Profile", textColor,
+                linkUrl: _professor!['google_scholar_link'], isLink: true),
           ],
         ],
       ),
     );
   }
 
-  Widget _buildInfoRow(IconData icon, String label, String? value) {
+  Widget _buildInfoRow(IconData icon, String label, String? value, Color textColor, {bool isLink = false, String? linkUrl}) {
     if (value == null || value.isEmpty) return const SizedBox.shrink();
-    return Row(
-      children: [
-        Icon(icon, color: Colors.grey, size: 20),
-        const SizedBox(width: 15),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+
+    return InkWell(
+      onTap: isLink ? () => _launchUrl(linkUrl ?? value) : null,
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: AppColors.primary, size: 20),
+          ),
+          const SizedBox(width: 15),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: TextStyle(fontSize: 12, color: textColor.withOpacity(0.6))),
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: isLink ? Colors.blueAccent : textColor,
+                    decoration: isLink ? TextDecoration.underline : TextDecoration.none,
+                    decorationColor: Colors.blueAccent.withOpacity(0.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (isLink) Icon(Icons.arrow_outward_rounded, size: 16, color: textColor.withOpacity(0.4))
+        ],
+      ),
+    );
+  }
+
+  // --- WIDGET 4: Research Interests ---
+  Widget _buildResearchSection(bool isDarkMode, Color textColor) {
+    List<String> displayInterests = [];
+
+    var listData = _professor!['research_interests_array'];
+    var stringData = _professor!['research_interests'];
+
+    if (listData != null && listData is List && listData.isNotEmpty) {
+      displayInterests = listData.map((e) => e.toString()).toList();
+    } else if (stringData != null && stringData is String && stringData.isNotEmpty) {
+      displayInterests = stringData.split(',').map((e) => e.trim()).toList();
+    }
+
+    if (displayInterests.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: _getCardColor(isDarkMode),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4)
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
             children: [
-              Text(label,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey)),
-              Text(value,
-                  style: const TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w500)),
+              Icon(Icons.lightbulb_outline, color: AppColors.primary),
+              const SizedBox(width: 10),
+              Text(
+                "Research Interests",
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: textColor),
+              ),
             ],
           ),
-        ),
-      ],
-    );
-  }
-
-  // --- WIDGET: Research Interests ---
-  Widget _buildResearchSection() {
-    List<dynamic> interests = _professor!['research_interests_array'] ?? [];
-    if (interests.isEmpty) return const SizedBox.shrink();
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text("Research Interests",
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: interests.map((item) {
-            return Chip(
-              label: Text(item.toString()),
-              backgroundColor: Colors.white,
-              surfaceTintColor: Colors.white,
-              elevation: 2,
-              shadowColor: Colors.black.withAlpha(50),
-              labelStyle: TextStyle(color: AppColors.primary, fontSize: 13),
-              shape: RoundedRectangleBorder(
+          const SizedBox(height: 15),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: displayInterests.map((item) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(8),
-                  side: BorderSide(color: AppColors.primary.withAlpha(50))),
-            );
-          }).toList(),
-        ),
-      ],
+                  border: Border.all(color: AppColors.primary.withOpacity(0.1)),
+                ),
+                child: Text(
+                  item,
+                  style: TextStyle(
+                      color: AppColors.primary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
     );
   }
 
-  // --- WIDGET: Generic Text Section ---
-  Widget _buildSectionTitle(String title, String content) {
+  // --- WIDGET 5: Generic Section ---
+  Widget _buildSectionTitle(String title, String content, bool isDarkMode, Color textColor) {
     if (content.isEmpty) return const SizedBox.shrink();
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-          color: Colors.white, borderRadius: BorderRadius.circular(20)),
+          color: _getCardColor(isDarkMode),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.03), blurRadius: 10, offset: const Offset(0, 4))]
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title,
-              style:
-              const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 10),
-          Text(content,
-              style: const TextStyle(fontSize: 15, color: Colors.black87, height: 1.5)),
+          Row(
+            children: [
+              Icon(Icons.stars_rounded, color: Colors.amber.shade700),
+              const SizedBox(width: 8),
+              Text(title, style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: textColor)),
+            ],
+          ),
+          Divider(height: 20, color: Colors.grey.withOpacity(0.2)),
+          Text(
+            content,
+            style: TextStyle(fontSize: 15, color: textColor, height: 1.6),
+          ),
         ],
       ),
     );
+  }
+
+  String _getInitials(String? name) {
+    if (name == null || name.isEmpty) return "P";
+    List<String> parts = name.split(" ");
+    if (parts.length > 1) return "${parts[0][0]}${parts[1][0]}".toUpperCase();
+    return name[0].toUpperCase();
   }
 }

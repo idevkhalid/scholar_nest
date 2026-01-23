@@ -1,10 +1,11 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:scholar_nest/screens/how_to%20apply%20_screen.dart';
+
 import '../constants/colors.dart';
 import '../services/ad_service.dart';
+import 'how_to apply _screen.dart';
 import 'professor_list_screen.dart';
-import 'ConsultantListScreen.dart'; // <--- Import the new screen
+import 'ConsultantListScreen.dart';
 
 class KnowledgeBaseScreen extends StatelessWidget {
   const KnowledgeBaseScreen({super.key});
@@ -12,203 +13,231 @@ class KnowledgeBaseScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final double topPadding = MediaQuery.of(context).padding.top;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppColors.backgroundGradient,
-        ),
-        child: SafeArea(
-          top: false,
-          child: Column(
-            children: [
-              // ---------------- GLASS HEADER ----------------
-              ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
-                ),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                  child: Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.only(
-                      top: topPadding + 15,
-                      bottom: 20,
-                      left: 20,
-                      right: 20,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.3),
-                      borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(30),
-                        bottomRight: Radius.circular(30),
+      backgroundColor: isDark ? AppColors.backgroundDark : AppColors.background,
+      body: Column(
+        children: [
+
+          // ===============================================
+          // 1. HEADER
+          // ===============================================
+          Container(
+            padding: EdgeInsets.only(
+              top: topPadding + 10,
+              bottom: 25,
+              left: 20,
+              right: 20,
+            ),
+            decoration: BoxDecoration(
+              gradient: AppColors.headerGradient,
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 15,
+                  offset: const Offset(0, 5),
+                )
+              ],
+            ),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    // Header Icon
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.25),
-                      ),
+                      child: const Icon(Icons.menu_book_rounded, color: Colors.white, size: 24),
                     ),
-                    child: Row(
-                      children: const [
-                        Icon(Icons.menu_book, color: Colors.white, size: 32),
-                        SizedBox(width: 14),
-                        Expanded(
-                          child: Text(
+                    const SizedBox(width: 15),
+                    // Header Text
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
                             "Knowledge Base",
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 24,
+                              fontSize: 22,
                               fontWeight: FontWeight.bold,
+                              letterSpacing: 0.5,
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 20),
-
-              // ---------------- BODY ----------------
-              Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  children: [
-                    // 1. HOW TO APPLY BUTTON
-                    _knowledgeCard(
-                      icon: Icons.play_circle_outline,
-                      title: "How to Apply",
-                      description: "Watch step-by-step video guidance on how to apply.",
-                      onTap: () {
-                        // 1. Call the counter method
-                        AdService().showAdWithCounter();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const HowToApplyScreen(),
+                          SizedBox(height: 2),
+                          Text(
+                            "Everything you need to know",
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 13,
+                            ),
                           ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 20),
-
-                    // 2. PROFESSOR LIST BUTTON
-                    _knowledgeCard(
-                      icon: Icons.people_outline,
-                      title: "Professor List",
-                      description: "Find professors who can guide and support you.",
-                      onTap: () {
-                        // 1. Call the counter method
-                        AdService().showAdWithCounter();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>  ProfessorListScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                    const SizedBox(height: 20),
-
-                    // 3. NEW CONSULTANT BUTTON
-                    _knowledgeCard(
-                      icon: Icons.support_agent_outlined, // Good icon for consultants
-                      title: "Consultants",
-                      description: "Connect with experts for personalized guidance.",
-                      onTap: () {
-                        // 1. Call the counter method
-                        AdService().showAdWithCounter();
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const AllConsultantScreen(),
-                          ),
-                        );
-                      },
+                        ],
+                      ),
                     ),
                   ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
+
+          // ===============================================
+          // 2. BODY
+          // ===============================================
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.all(20),
+              physics: const BouncingScrollPhysics(),
+              children: [
+
+                // 1. HOW TO APPLY
+                _professionalCard(
+                  context,
+                  title: "How to Apply",
+                  subtitle: "Step-by-step guidance",
+                  icon: Icons.history_edu_rounded,
+                  isDark: isDark,
+                  onTap: () {
+                    AdService().showAdWithCounter();
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const HowToApplyScreen()));
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                // 2. PROFESSOR LIST
+                _professionalCard(
+                  context,
+                  title: "Professor List",
+                  subtitle: "Find mentors & supervisors",
+                  icon: Icons.school_rounded,
+                  isDark: isDark,
+                  onTap: () {
+                    AdService().showAdWithCounter();
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => ProfessorListScreen()));
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                // 3. CONSULTANTS
+                _professionalCard(
+                  context,
+                  title: "Consultants",
+                  subtitle: "Get expert assistance",
+                  icon: Icons.handshake_rounded,
+                  isDark: isDark,
+                  onTap: () {
+                    AdService().showAdWithCounter();
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const AllConsultantScreen()));
+                  },
+                ),
+
+                const SizedBox(height: 50),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  // ---------------- KNOWLEDGE CARD ----------------
-  Widget _knowledgeCard({
-    required IconData icon,
-    required String title,
-    required String description,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(20),
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-          gradient: LinearGradient(
-            colors: [Colors.white, Colors.grey[100]!],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+  // ---------------- PROFESSIONAL CARD WIDGET ----------------
+  Widget _professionalCard(
+      BuildContext context, {
+        required String title,
+        required String subtitle,
+        required IconData icon,
+        required VoidCallback onTap,
+        required bool isDark,
+      }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.cardDark : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 15,
+            offset: const Offset(0, 4),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.08),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          splashColor: AppColors.primary.withOpacity(0.05),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 22),
+            child: Row(
+              children: [
+                // 1. ICON BOX
+                Container(
+                  height: 52,
+                  width: 52,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary, // Deep Teal Box
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.25),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    icon,
+                    color: Colors.white, // ✅ CHANGED TO WHITE
+                    size: 26,
+                  ),
+                ),
+
+                const SizedBox(width: 20),
+
+                // 2. TEXT CONTENT
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? Colors.white : AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: isDark ? Colors.grey[400] : AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // 3. ARROW
+                Icon(
+                  Icons.arrow_forward_ios_rounded,
+                  color: Colors.grey.withOpacity(0.3),
+                  size: 16,
+                )
+              ],
             ),
-          ],
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(22),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.primary.withOpacity(0.15),
-                ),
-                child: Icon(
-                  icon,
-                  color: AppColors.primary,
-                  size: 32,
-                ),
-              ),
-              const SizedBox(width: 18),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 19,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      description,
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.grey[700],
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const Icon(
-                Icons.chevron_right,
-                color: Colors.grey,
-                size: 30,
-              ),
-            ],
           ),
         ),
       ),

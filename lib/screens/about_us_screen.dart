@@ -14,10 +14,8 @@ class _AboutUsScreenState extends State<AboutUsScreen> {
   Map<String, dynamic>? settings;
   bool isLoading = true;
 
-  // --- COLORS ---
-  static const Color darkPrimary = Color(0xFF1B3C53);  // Dark Navy
-  static const Color background = Color(0xFFF5F7FA);   // Light Grey
-  static const Color accentGold = Color(0xFFD4AF37);   // Gold Accent
+  // --- ACCENT COLOR (Keep Gold for both modes) ---
+  static const Color accentGold = Color(0xFFD4AF37);
 
   @override
   void initState() {
@@ -39,14 +37,24 @@ class _AboutUsScreenState extends State<AboutUsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 1. Get the actual version from API (default to '...' if loading)
+    // 1. THEME DETECTION
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    // 2. ADAPTIVE COLORS
+    final Color backgroundColor = isDarkMode ? const Color(0xFF121212) : const Color(0xFFF5F7FA);
+    final Color cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    final Color primaryText = isDarkMode ? Colors.white : const Color(0xFF2D2D2D);
+    final Color secondaryText = isDarkMode ? Colors.grey[400]! : Colors.grey.shade600;
+    final Color iconBgColor = isDarkMode ? Colors.white.withOpacity(0.1) : const Color(0xFFF0F4F8);
+
+    // Get the actual version from API (default to '...' if loading)
     final String actualVersion = settings?['app_version'] ?? "Loading...";
 
     return Scaffold(
-      backgroundColor: background,
-      extendBodyBehindAppBar: true, // Allows header to go behind status bar
+      backgroundColor: backgroundColor,
+      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.transparent, // Transparent so custom header shows
+        backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
@@ -59,22 +67,23 @@ class _AboutUsScreenState extends State<AboutUsScreen> {
         ),
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator(color: darkPrimary))
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : SingleChildScrollView(
         child: Column(
           children: [
             // --- HEADER WITH OPACITY ---
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(20, 100, 20, 50), // Top padding for status bar
+              padding: const EdgeInsets.fromLTRB(20, 100, 20, 50),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.6),
+                // In dark mode, we keep the primary color but maybe slightly darker or transparent
+                color: AppColors.primary.withOpacity(0.9),
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(30),
                   bottomRight: Radius.circular(30),
                 ),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.25),
+                  color: Colors.white.withOpacity(0.15),
                 ),
               ),
               child: Column(
@@ -103,7 +112,7 @@ class _AboutUsScreenState extends State<AboutUsScreen> {
                   ),
                   const SizedBox(height: 8),
 
-                  // 3. ACTUAL VERSION BADGE
+                  // VERSION BADGE
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
                     decoration: BoxDecoration(
@@ -111,11 +120,11 @@ class _AboutUsScreenState extends State<AboutUsScreen> {
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
-                      "Version $actualVersion", // Uses API data
+                      "Version $actualVersion",
                       style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          color: darkPrimary
+                          color: AppColors.primary // Keep dark text on gold bg
                       ),
                     ),
                   ),
@@ -131,11 +140,11 @@ class _AboutUsScreenState extends State<AboutUsScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(25),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: cardColor, // Adaptive Card Color
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: darkPrimary.withOpacity(0.08),
+                        color: isDarkMode ? Colors.black.withOpacity(0.3) : AppColors.primary.withOpacity(0.08),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
@@ -149,7 +158,7 @@ class _AboutUsScreenState extends State<AboutUsScreen> {
                         style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: darkPrimary.withOpacity(0.8)
+                            color: isDarkMode ? Colors.white70 : AppColors.primary.withOpacity(0.8)
                         ),
                       ),
                       const SizedBox(height: 20),
@@ -159,14 +168,20 @@ class _AboutUsScreenState extends State<AboutUsScreen> {
                         label: "Email Support",
                         value: settings?['support_email'],
                         onTap: () => _launchUri('mailto:${settings?['support_email']}'),
+                        primaryText: primaryText,
+                        secondaryText: secondaryText,
+                        iconBg: iconBgColor,
                       ),
-                      const Divider(height: 35, thickness: 0.5),
+                      Divider(height: 35, thickness: 0.5, color: isDarkMode ? Colors.grey[800] : Colors.grey[300]),
 
                       _buildInfoRow(
                         icon: Icons.headset_mic_outlined,
                         label: "Helpline",
                         value: settings?['support_number_1'],
                         onTap: () => _launchUri('tel:${settings?['support_number_1']}'),
+                        primaryText: primaryText,
+                        secondaryText: secondaryText,
+                        iconBg: iconBgColor,
                       ),
                     ],
                   ),
@@ -181,17 +196,17 @@ class _AboutUsScreenState extends State<AboutUsScreen> {
                 Text(
                   "Developed by",
                   style: TextStyle(
-                    color: Colors.grey.shade500,
+                    color: secondaryText,
                     fontSize: 11,
                     letterSpacing: 0.5,
                   ),
                 ),
                 const SizedBox(height: 5),
-                // 👇 UPDATED COMPANY NAME
-                const Text(
+                // COMPANY NAME
+                Text(
                   "Codes Solution (PVT) LTD",
                   style: TextStyle(
-                    color: darkPrimary,
+                    color: isDarkMode ? Colors.white : AppColors.primary,
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 0.5,
@@ -200,7 +215,7 @@ class _AboutUsScreenState extends State<AboutUsScreen> {
                 const SizedBox(height: 5),
                 Text(
                   "© 2026 All Rights Reserved",
-                  style: TextStyle(color: Colors.grey.shade400, fontSize: 11),
+                  style: TextStyle(color: secondaryText, fontSize: 11),
                 ),
               ],
             ),
@@ -216,6 +231,9 @@ class _AboutUsScreenState extends State<AboutUsScreen> {
     required String label,
     String? value,
     required VoidCallback onTap,
+    required Color primaryText,
+    required Color secondaryText,
+    required Color iconBg,
   }) {
     return InkWell(
       onTap: onTap,
@@ -225,10 +243,10 @@ class _AboutUsScreenState extends State<AboutUsScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: const Color(0xFFF0F4F8),
+              color: iconBg,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: darkPrimary, size: 22),
+            child: Icon(icon, color: AppColors.primary, size: 22),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -237,17 +255,17 @@ class _AboutUsScreenState extends State<AboutUsScreen> {
               children: [
                 Text(
                   label,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+                  style: TextStyle(fontSize: 12, color: secondaryText),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   value ?? "N/A",
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Color(0xFF2D2D2D)),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: primaryText),
                 ),
               ],
             ),
           ),
-          Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey.shade400),
+          Icon(Icons.arrow_forward_ios, size: 14, color: secondaryText),
         ],
       ),
     );

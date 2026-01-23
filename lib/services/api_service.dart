@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -6,7 +7,6 @@ class ApiService {
   static const String mainBaseUrl = "https://scholarnest.codessol.com/api";
   static const String authBaseUrl = "$mainBaseUrl/auth";
   static const String baseUrl = authBaseUrl; // alias
-
 
   // ===========================================================================
   // AUTHENTICATION METHODS
@@ -24,7 +24,10 @@ class ApiService {
     try {
       final response = await http.post(
         url,
-        headers: {"Content-Type": "application/json", "Accept": "application/json"},
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
         body: jsonEncode({
           "f_name": fName,
           "l_name": lName,
@@ -58,7 +61,8 @@ class ApiService {
     }
   }
 
-  static Future<Map<String, dynamic>> loginUser(String email, String password) async {
+  static Future<Map<String, dynamic>> loginUser(
+      String email, String password) async {
     final url = Uri.parse('$authBaseUrl/login');
     final cleanEmail = email.trim();
     final cleanPassword = password.trim();
@@ -159,12 +163,16 @@ class ApiService {
     );
     final data = jsonDecode(response.body);
     if (response.statusCode != 200) {
-      return {"status": "error", "message": data["message"] ?? "Something went wrong"};
+      return {
+        "status": "error",
+        "message": data["message"] ?? "Something went wrong"
+      };
     }
     return {"status": "success", "message": data["message"]};
   }
 
-  static Future<Map<String, dynamic>> verifyOtp({required String email, required String otp}) async {
+  static Future<Map<String, dynamic>> verifyOtp(
+      {required String email, required String otp}) async {
     final url = Uri.parse('$baseUrl/verify-otp');
     final response = await http.post(
       url,
@@ -173,7 +181,10 @@ class ApiService {
     );
     final data = jsonDecode(response.body);
     if (response.statusCode != 200) {
-      return {"status": "error", "message": data["message"] ?? "OTP verification failed"};
+      return {
+        "status": "error",
+        "message": data["message"] ?? "OTP verification failed"
+      };
     }
     return {"status": data["status"], "message": data["message"]};
   }
@@ -187,7 +198,10 @@ class ApiService {
     );
     final data = jsonDecode(response.body);
     if (response.statusCode != 200) {
-      return {"status": "error", "message": data["message"] ?? "Failed to resend OTP"};
+      return {
+        "status": "error",
+        "message": data["message"] ?? "Failed to resend OTP"
+      };
     }
     return {"status": data["status"], "message": data["message"]};
   }
@@ -202,7 +216,10 @@ class ApiService {
     try {
       final response = await http.post(
         url,
-        headers: {"Content-Type": "application/json", "Accept": "application/json"},
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
         body: jsonEncode({
           "email": email,
           "otp": otp,
@@ -214,12 +231,21 @@ class ApiService {
       );
       final data = jsonDecode(response.body);
       if (response.statusCode == 200) {
-        return {"status": "success", "message": data["message"] ?? "Password reset successfully"};
+        return {
+          "status": "success",
+          "message": data["message"] ?? "Password reset successfully"
+        };
       } else {
-        return {"status": "error", "message": data["message"] ?? "Password reset failed"};
+        return {
+          "status": "error",
+          "message": data["message"] ?? "Password reset failed"
+        };
       }
     } catch (e) {
-      return {"status": "error", "message": "Connection error. Please try again."};
+      return {
+        "status": "error",
+        "message": "Connection error. Please try again."
+      };
     }
   }
 
@@ -239,23 +265,28 @@ class ApiService {
     return headers;
   }
 
-
   // ===========================================================================
   // CONSULTANTS & REVIEWS
   // ===========================================================================
 
-  static Future<Map<String, dynamic>> getConsultantDetails(int consultantId) async {
+  static Future<Map<String, dynamic>> getConsultantDetails(
+      int consultantId) async {
     final url = Uri.parse('$mainBaseUrl/consultants/$consultantId');
     try {
-      final response = await http.get(url, headers: {"Content-Type": "application/json"});
-      return response.statusCode == 200 ? jsonDecode(response.body) : {"status": "error", "message": "Server Error"};
+      final response = await http
+          .get(url, headers: {"Content-Type": "application/json"});
+      return response.statusCode == 200
+          ? jsonDecode(response.body)
+          : {"status": "error", "message": "Server Error"};
     } catch (e) {
       return {"status": "error", "message": "Connection failed"};
     }
   }
 
-  static Future<Map<String, dynamic>> getConsultantReviews(int consultantId, {int page = 1}) async {
-    final url = Uri.parse('$mainBaseUrl/consultants/$consultantId/reviews?page=$page');
+  static Future<Map<String, dynamic>> getConsultantReviews(int consultantId,
+      {int page = 1}) async {
+    final url = Uri.parse(
+        '$mainBaseUrl/consultants/$consultantId/reviews?page=$page');
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
 
@@ -302,11 +333,20 @@ class ApiService {
 
       final data = jsonDecode(response.body);
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return {"status": "success", "message": "Review submitted successfully"};
+        return {
+          "status": "success",
+          "message": "Review submitted successfully"
+        };
       } else if (response.statusCode == 409) {
-        return {"status": "error", "message": "You have already reviewed this consultant"};
+        return {
+          "status": "error",
+          "message": "You have already reviewed this consultant"
+        };
       } else {
-        return {"status": "error", "message": data["message"] ?? "Submission failed"};
+        return {
+          "status": "error",
+          "message": data["message"] ?? "Submission failed"
+        };
       }
     } catch (e) {
       return {"status": "error", "message": "Connection error"};
@@ -356,31 +396,141 @@ class ApiService {
   // ===========================================================================
 
   static Future<Map<String, dynamic>> getAllScholarships({int page = 1}) async {
-    final url = Uri.parse('$mainBaseUrl/scholarships?page=$page');
-    final response = await http.get(url, headers: {"Content-Type": "application/json"});
-    final data = jsonDecode(response.body);
-    return response.statusCode == 200 ? data : {"status": "error", "message": data["message"] ?? "Failed"};
+    try {
+      final url = Uri.parse('$mainBaseUrl/scholarships?page=$page');
+      final response = await http
+          .get(url, headers: {"Content-Type": "application/json"});
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data;
+      } else {
+        return {"status": "error", "message": "Failed to load"};
+      }
+    } catch (e) {
+      debugPrint("🛑 CRITICAL ERROR DETAIL: $e");
+      return {"status": "error", "message": "Connection error"};
+    }
+  }
+
+  // ✅ ADDED THIS MISSING FUNCTION
+  static Future<dynamic> getExpiringScholarships() async {
+    try {
+      // 1. Try a dedicated 'expiring' endpoint
+      final url = Uri.parse('$mainBaseUrl/scholarships/expiring');
+      final response = await http
+          .get(url, headers: {"Content-Type": "application/json"});
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      }
+
+      // 2. Fallback: If expiring endpoint doesn't exist, just get recent ones
+      // and let the Home Screen filter them by date.
+      final fallbackUrl = Uri.parse('$mainBaseUrl/scholarships?limit=10');
+      final fallbackResponse = await http.get(fallbackUrl,
+          headers: {"Content-Type": "application/json"});
+
+      if (fallbackResponse.statusCode == 200) {
+        return jsonDecode(fallbackResponse.body);
+      }
+
+      return [];
+    } catch (e) {
+      return [];
+    }
   }
 
   static Future<Map<String, dynamic>> getScholarshipDetails(int id) async {
-    final url = Uri.parse('$mainBaseUrl/scholarships/$id');
-    final response = await http.get(url, headers: {"Content-Type": "application/json"});
-    final data = jsonDecode(response.body);
-    return response.statusCode == 200 ? data : {"status": "error", "message": data["message"] ?? "Failed"};
+    try {
+      final url = Uri.parse('$mainBaseUrl/scholarships/$id');
+      final response = await http
+          .get(url, headers: {"Content-Type": "application/json"});
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        return {"status": "error", "message": "Failed to load details"};
+      }
+    } catch (e) {
+      return {"status": "error", "message": "Connection failed"};
+    }
   }
 
   static Future<Map<String, dynamic>> getFeaturedScholarships() async {
-    final url = Uri.parse('$mainBaseUrl/scholarships/featured');
-    final response = await http.get(url, headers: {"Content-Type": "application/json"});
-    final data = jsonDecode(response.body);
-    return response.statusCode == 200 ? data : {"status": "error", "message": data["message"] ?? "Failed"};
+    try {
+      final url = Uri.parse('$mainBaseUrl/scholarships/featured');
+      final response = await http
+          .get(url, headers: {"Content-Type": "application/json"});
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        return {
+          "status": "error",
+          "message": "Failed to load featured scholarships"
+        };
+      }
+    } catch (e) {
+      return {"status": "error", "message": "Connection failed"};
+    }
   }
 
-  static Future<Map<String, dynamic>> toggleSaveScholarship(int id, String token) async {
-    final headers = await _getHeaders();
-    final response = await http.post(Uri.parse('$mainBaseUrl/scholarships/$id/save'), headers: headers);
-    final data = jsonDecode(response.body);
-    return response.statusCode == 200 ? data : {"status": "error", "message": data["message"] ?? "Failed"};
+  static Future<List<dynamic>> getSavedScholarships(String token) async {
+    final url = Uri.parse('$mainBaseUrl/scholarships/my/saved');
+    try {
+      final response = await http.get(
+        url,
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "Authorization": "Bearer $token",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data is List) return data;
+        if (data['data'] != null) return data['data'];
+        return [];
+      } else {
+        throw Exception(
+            "Server Error: ${response.statusCode} - ${response.reasonPhrase}");
+      }
+    } catch (e) {
+      return [];
+    }
+  }
+
+  static Future<Map<String, dynamic>> toggleSaveScholarship(
+      int id, String token) async {
+    try {
+      final response = await http.post(
+          Uri.parse('$mainBaseUrl/scholarships/$id/save'),
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer $token",
+          });
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else {
+        try {
+          final errorData = jsonDecode(response.body);
+          return {
+            "status": "error",
+            "message": errorData["message"] ?? "Failed"
+          };
+        } catch (_) {
+          return {
+            "status": "error",
+            "message": "Server error ${response.statusCode}"
+          };
+        }
+      }
+    } catch (e) {
+      return {"status": "error", "message": "Connection failed"};
+    }
   }
 
   static Future<Map<String, dynamic>> searchScholarships({
@@ -398,20 +548,21 @@ class ApiService {
     int perPage = 20,
   }) async {
     final url = Uri.parse("$mainBaseUrl/scholarships/search");
-    final body = {
+    final Map<String, dynamic> body = {
       "query": query,
-      if (category != null) "category": category,
-      if (country != null) "country": country,
-      if (minAmount != null) "min_amount": minAmount,
-      if (maxAmount != null) "max_amount": maxAmount,
-      if (degreeLevel != null) "degree_level": degreeLevel,
-      if (fieldOfStudy != null) "field_of_study": fieldOfStudy,
-      if (deadlineRange != null) "deadline_range": deadlineRange,
-      if (sortBy != null) "sort_by": sortBy,
-      if (sortOrder != null) "sort_order": sortOrder,
       "page": page,
       "per_page": perPage,
     };
+
+    if (category != null) body["category"] = category;
+    if (country != null) body["country"] = country;
+    if (minAmount != null) body["min_amount"] = minAmount;
+    if (maxAmount != null) body["max_amount"] = maxAmount;
+    if (degreeLevel != null) body["degree_level"] = degreeLevel;
+    if (fieldOfStudy != null) body["field_of_study"] = fieldOfStudy;
+    if (deadlineRange != null) body["deadline_range"] = deadlineRange;
+    if (sortBy != null) body["sort_by"] = sortBy;
+    if (sortOrder != null) body["sort_order"] = sortOrder;
 
     try {
       final response = await http.post(
@@ -419,54 +570,59 @@ class ApiService {
         headers: {"Content-Type": "application/json"},
         body: jsonEncode(body),
       );
+
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
       } else {
         return {"status": "error", "message": "Failed to search scholarships"};
       }
     } catch (e) {
-      return {"status": "error", "message": e.toString()};
+      return {"status": "error", "message": "Connection failed"};
     }
   }
-// ---------------------------------------------------------
-  // 4. GET PROFESSORS (DEBUG VERSION)
-  // ---------------------------------------------------------
-  static Future<Map<String, dynamic>> getProfessors({int page = 1}) async {
-    final url = Uri.parse('$mainBaseUrl/professors?page=$page');
 
-    print("------------------------------------------------");
-    print("🚀 API REQUEST: $url");
+  // ---------------------------------------------------------
+  // 4. GET PROFESSORS
+  // ---------------------------------------------------------
+
+  static Future<Map<String, dynamic>> getProfessors({int page = 1, String search = ''}) async {
+    // 1. Build URL with Search Query
+    String urlString = '$mainBaseUrl/professors?page=$page';
+    if (search.isNotEmpty) {
+      urlString += '&search=$search';
+    }
+    final url = Uri.parse(urlString);
 
     try {
       final headers = await _getHeaders();
-      // Debug: Check if token exists
-      if (headers['Authorization'] == null) {
-        print("⚠️ WARNING: No Auth Token found!");
-      }
-
       final response = await http.get(url, headers: headers);
-
-      print("📡 STATUS CODE: ${response.statusCode}");
-      print("📦 BODY: ${response.body}");
-
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
-        // Correct path based on your provided JSON
-        final List<dynamic> professorList = data['data']['data'] ?? [];
-
+        // 2. IMPORTANT CHANGE:
+        // We return data['data'] (the wrapper), NOT data['data']['data'] (the list).
+        // This ensures the UI gets "current_page", "last_page", etc.
         return {
           "status": "success",
-          "data": professorList,
+          "success": true,
+          "data": data['data'], // Contains pagination info AND the list
         };
       } else {
-        return {"status": "error", "message": data["message"] ?? "Error ${response.statusCode}"};
+        return {
+          "status": "error",
+          "success": false,
+          "message": data["message"] ?? "Error ${response.statusCode}"
+        };
       }
     } catch (e) {
-      print("❌ EXCEPTION: $e");
-      return {"status": "error", "message": "Connection error"};
+      return {
+        "status": "error",
+        "success": false,
+        "message": "Connection error"
+      };
     }
   }
+
   // ---------------------------------------------------------
   // 5. GET SINGLE PROFESSOR DETAILS
   // ---------------------------------------------------------
@@ -480,7 +636,7 @@ class ApiService {
       if (response.statusCode == 200) {
         return {
           "status": "success",
-          "data": data['data'], // The professor object is inside 'data'
+          "data": data['data'],
         };
       } else {
         return {
@@ -492,11 +648,12 @@ class ApiService {
       return {"status": "error", "message": "Connection error: $e"};
     }
   }
+
   // ---------------------------------------------------------
-  // 6. GET GUIDELINE VIDEOS (With Search)
+  // 6. GET GUIDELINE VIDEOS
   // ---------------------------------------------------------
-  static Future<Map<String, dynamic>> getGuidelineVideos({String? query}) async {
-    // If query exists, append it to URL: .../apply-guideline-videos?search=scholarship
+  static Future<Map<String, dynamic>> getGuidelineVideos(
+      {String? query}) async {
     String baseUrl = '$mainBaseUrl/apply-guideline-videos';
     if (query != null && query.isNotEmpty) {
       baseUrl += '?search=$query';
@@ -524,11 +681,12 @@ class ApiService {
       return {"status": "error", "message": "Connection error: $e"};
     }
   }
+
   // ---------------------------------------------------------
+  // 11. GET ALL CONSULTANTS
   // ---------------------------------------------------------
-  // 11. GET ALL CONSULTANTS (Fixed for Pagination)
-  // ---------------------------------------------------------
-  static Future<Map<String, dynamic>> getAllConsultants({String? query, int page = 1}) async {
+  static Future<Map<String, dynamic>> getAllConsultants(
+      {String? query, int page = 1}) async {
     String baseUrl = '$mainBaseUrl/consultants?page=$page';
     if (query != null && query.isNotEmpty) {
       baseUrl += '&search=$query';
@@ -537,25 +695,18 @@ class ApiService {
     final url = Uri.parse(baseUrl);
     try {
       final headers = await _getHeaders();
-      print("DEBUG: Fetching consultants from $url");
-
       final response = await http.get(url, headers: headers);
-      print("DEBUG: Response Status: ${response.statusCode}");
-      print("DEBUG: Response Body: ${response.body}"); // <--- Check your console for this!
-
       final data = jsonDecode(response.body);
 
-      if (response.statusCode == 200 && (data['status'] == 'success' || data['success'] == true)) {
-
+      if (response.statusCode == 200 &&
+          (data['status'] == 'success' || data['success'] == true)) {
         var fetchedData = data['data'];
         List<dynamic> finalList = [];
 
-        // CHECK 1: Is it a Paginated Response? (Map with a 'data' key inside)
-        if (fetchedData is Map<String, dynamic> && fetchedData.containsKey('data')) {
+        if (fetchedData is Map<String, dynamic> &&
+            fetchedData.containsKey('data')) {
           finalList = fetchedData['data'];
-        }
-        // CHECK 2: Is it a direct List?
-        else if (fetchedData is List) {
+        } else if (fetchedData is List) {
           finalList = fetchedData;
         }
 
@@ -564,13 +715,16 @@ class ApiService {
           "data": finalList,
         };
       } else {
-        return {"status": "error", "message": data['message'] ?? "Failed to load"};
+        return {
+          "status": "error",
+          "message": data['message'] ?? "Failed to load"
+        };
       }
     } catch (e) {
-      print("DEBUG: Error in getAllConsultants: $e");
       return {"status": "error", "message": "Connection error"};
     }
   }
+
   // ---------------------------------------------------------
   // 12. GET TOP RATED CONSULTANTS
   // ---------------------------------------------------------
@@ -593,6 +747,7 @@ class ApiService {
       return {"status": "error", "message": "Connection error"};
     }
   }
+
   // ---------------------------------------------------------
   // 13. SUBMIT CONTACT FORM
   // ---------------------------------------------------------
@@ -605,7 +760,7 @@ class ApiService {
     final url = Uri.parse('$mainBaseUrl/contact/submit');
 
     try {
-      final headers = await _getHeaders(); // Includes token if logged in
+      final headers = await _getHeaders();
       final body = jsonEncode({
         "full_name": fullName,
         "contact_number": contactNumber,
@@ -622,11 +777,9 @@ class ApiService {
           "message": data['message'] ?? "Message sent successfully",
         };
       } else if (response.statusCode == 422) {
-        // Handle validation errors (e.g., email already taken or invalid format)
         final errors = data['errors'];
         String errorMessage = data['message'];
 
-        // If there are specific field errors, try to grab the first one
         if (errors != null && errors is Map) {
           final firstKey = errors.keys.first;
           if (errors[firstKey] is List && errors[firstKey].isNotEmpty) {
@@ -635,32 +788,32 @@ class ApiService {
         }
         return {"status": "error", "message": errorMessage};
       } else {
-        return {"status": "error", "message": data['message'] ?? "Something went wrong"};
+        return {
+          "status": "error",
+          "message": data['message'] ?? "Something went wrong"
+        };
       }
     } catch (e) {
-      return {"status": "error", "message": "Connection error. Please check your internet."};
+      return {
+        "status": "error",
+        "message": "Connection error. Please check your internet."
+      };
     }
   }
+
   // ---------------------------------------------------------
   // 14. GET USER PROFILE
   // ---------------------------------------------------------
   static Future<Map<String, dynamic>> getUserProfile() async {
-    // Ensure this matches your variable name (baseUrl or mainBaseUrl)
     final url = Uri.parse('$mainBaseUrl/user/profile');
 
     try {
       final headers = await _getHeaders();
       final response = await http.get(url, headers: headers);
-
-      // DEBUG LOG: See what the server actually sends
-      print("PROFILE API: ${response.statusCode} - ${response.body}");
-
       final data = jsonDecode(response.body);
 
       if (response.statusCode == 200) {
-        // Safe check: ensure 'profile' exists, otherwise send empty map
         final profileData = data['profile'] ?? data['data'] ?? {};
-
         return {
           "status": "success",
           "data": profileData,
@@ -674,22 +827,20 @@ class ApiService {
         };
       }
     } catch (e) {
-      print("PROFILE ERROR: $e");
       return {"status": "error", "message": "Connection error: $e"};
     }
   }
 
-
   // ---------------------------------------------------------
-  // 15. UPDATE USER PROFILE (Using PUT)
+  // 15. UPDATE USER PROFILE
   // ---------------------------------------------------------
-  static Future<Map<String, dynamic>> updateUserProfile(Map<String, dynamic> profileData) async {
+  static Future<Map<String, dynamic>> updateUserProfile(
+      Map<String, dynamic> profileData) async {
     final url = Uri.parse('$mainBaseUrl/user/profile');
     try {
       final headers = await _getHeaders();
       final body = jsonEncode(profileData);
 
-      // Changed from http.post to http.put
       final response = await http.put(url, headers: headers, body: body);
       final data = jsonDecode(response.body);
 
@@ -700,10 +851,8 @@ class ApiService {
           "data": data['profile']
         };
       } else {
-        // Handle validation errors
         String message = data['message'] ?? "Update failed";
         if (data['errors'] != null) {
-          // Extract the first error message available
           if (data['errors'] is Map) {
             final firstError = data['errors'].values.first;
             if (firstError is List && firstError.isNotEmpty) {
@@ -717,40 +866,37 @@ class ApiService {
       return {"status": "error", "message": "Connection error"};
     }
   }
-  // --- UPDATED APPLY METHOD ---
+
+  // --- APPLY METHOD ---
   static Future<Map<String, dynamic>> applyForScholarship({
     required int consultantId,
     required int scholarshipId,
   }) async {
-    // 1. URL: Use mainBaseUrl (No /auth)
     final url = Uri.parse("$mainBaseUrl/apply-to-consultant");
-
-    // 2. HEADERS: Use your existing helper to get the correct 'access_token'
     final headers = await _getHeaders();
 
-    // Debug check: Ensure Authorization header exists
     if (!headers.containsKey('Authorization')) {
-      return {"success": false, "message": "User not logged in (Token missing)"};
+      return {
+        "success": false,
+        "message": "User not logged in (Token missing)"
+      };
     }
 
     try {
-      print("Attempting to apply...");
-      print("URL: $url");
-
       final response = await http.post(
         url,
-        headers: headers, // Uses the headers from your helper
+        headers: headers,
         body: jsonEncode({
           "consultant_id": consultantId,
           "scholarship_id": scholarshipId,
         }),
       );
 
-      print("Status Code: ${response.statusCode}");
-
-      // 3. Handle HTML errors safely
       if (response.headers['content-type']?.contains('html') == true) {
-        return {"success": false, "message": "Server returned HTML error (Status: ${response.statusCode})"};
+        return {
+          "success": false,
+          "message": "Server returned HTML error (Status: ${response.statusCode})"
+        };
       }
 
       final data = jsonDecode(response.body);
@@ -763,28 +909,25 @@ class ApiService {
       } else {
         return {
           "success": false,
-          "message": data['message'] ?? "Failed with status ${response.statusCode}"
+          "message":
+          data['message'] ?? "Failed with status ${response.statusCode}"
         };
       }
     } catch (e) {
       return {"success": false, "message": "Network Error: $e"};
     }
   }
+
   // --- DELETE ACCOUNT ---
   static Future<Map<String, dynamic>> deleteAccount(String password) async {
-    // URL: https://scholarnest.codessol.com/api/auth/delete-account
     final url = Uri.parse('$authBaseUrl/delete-account');
 
     try {
       final headers = await _getHeaders();
-
-      // The http.delete method supports a body, which is required by your API
       final response = await http.delete(
         url,
         headers: headers,
-        body: jsonEncode({
-          "password": password
-        }),
+        body: jsonEncode({"password": password}),
       );
 
       final data = jsonDecode(response.body);
@@ -809,12 +952,12 @@ class ApiService {
       return {"status": "error", "message": "Connection error: $e"};
     }
   }
+
   // 3. RESTORE ACCOUNT
   static Future<Map<String, dynamic>> restoreAccount({
     required String email,
     required String password,
   }) async {
-    // This uses a public endpoint, so we don't need _getHeaders() (No token needed)
     try {
       final response = await http.post(
         Uri.parse('$authBaseUrl/restore-account'),
@@ -835,15 +978,13 @@ class ApiService {
           'status': 'success',
           'message': data['message'] ?? 'Account restored successfully'
         };
-      }
-      else if (response.statusCode == 410) {
+      } else if (response.statusCode == 410) {
         return {
           'status': 'error',
           'message': data['message'] ??
               'Account permanently deleted. Cannot restore.'
         };
-      }
-      else {
+      } else {
         return {
           'status': 'error',
           'message': data['message'] ?? 'Restoration failed'
@@ -854,20 +995,19 @@ class ApiService {
     }
   }
 
+  // ✅ FIXED BROKEN FUNCTION & CLOSED CLASS CORRECTLY
   static Future<Map<String, dynamic>> getPublicSettings() async {
     try {
       final response = await http.get(
         Uri.parse('$mainBaseUrl/settings/public'),
-        headers: {"Accept": "application/json"},
+        headers: {"Content-Type": "application/json"},
       );
-
       if (response.statusCode == 200) {
         return jsonDecode(response.body);
-      } else {
-        return {"success": false, "message": "Failed to load settings"};
       }
+      return {};
     } catch (e) {
-      return {"success": false, "message": e.toString()};
+      return {};
     }
   }
-  }
+}

@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.example.scholar_nest"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 33
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

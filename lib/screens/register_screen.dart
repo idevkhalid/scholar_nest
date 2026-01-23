@@ -24,7 +24,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   bool _isLoading = false;
 
-  // 1. ADDED: State variables for independent toggles
+  // State variables for independent toggles
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
@@ -86,10 +86,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
 
+    // 1. THEME DETECTION
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    // 2. COLOR VARIABLES
+    final backgroundColor = isDarkMode ? const Color(0xFF121212) : null; // Use gradient if null
+    final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white; // Dark Grey vs White
+    final titleColor = isDarkMode ? Colors.white : AppColors.primary;
+    final subtitleColor = isDarkMode ? Colors.grey[400] : AppColors.textSecondary?.withOpacity(0.8);
+    final inputFillColor = isDarkMode ? Colors.white10 : Colors.grey[100];
+    final inputTextColor = isDarkMode ? Colors.white : Colors.black;
+
     return Scaffold(
+      backgroundColor: backgroundColor,
       body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppColors.backgroundGradient,
+        decoration: BoxDecoration(
+          // Only show gradient in Light Mode
+          gradient: isDarkMode ? null : AppColors.backgroundGradient,
         ),
         child: SafeArea(
           child: Center(
@@ -116,7 +129,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+                      color: titleColor, // Adaptive Color
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -124,7 +137,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     'Sign up to start your journey',
                     style: TextStyle(
                       fontSize: 14,
-                      color: AppColors.textSecondary?.withOpacity(0.8),
+                      color: subtitleColor, // Adaptive Color
                     ),
                   ),
                   const SizedBox(height: 30),
@@ -134,11 +147,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     margin: const EdgeInsets.symmetric(horizontal: 20),
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: AppColors.cardBackground,
+                      color: cardColor, // Adaptive Color
                       borderRadius: BorderRadius.circular(20),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.grey.withOpacity(0.2),
+                          color: isDarkMode ? Colors.black.withOpacity(0.3) : Colors.grey.withOpacity(0.2),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
@@ -152,12 +165,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             controller: fNameCtrl,
                             label: 'First Name',
                             icon: Icons.person_outline,
+                            fillColor: inputFillColor!,
+                            textColor: inputTextColor,
+                            isDarkMode: isDarkMode,
                           ),
                           const SizedBox(height: 12),
                           _buildTextField(
                             controller: lNameCtrl,
                             label: 'Last Name',
                             icon: Icons.person_outline,
+                            fillColor: inputFillColor,
+                            textColor: inputTextColor,
+                            isDarkMode: isDarkMode,
                           ),
                           const SizedBox(height: 12),
                           _buildTextField(
@@ -165,36 +184,45 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             label: 'Email',
                             icon: Icons.email_outlined,
                             keyboardType: TextInputType.emailAddress,
+                            fillColor: inputFillColor,
+                            textColor: inputTextColor,
+                            isDarkMode: isDarkMode,
                           ),
                           const SizedBox(height: 12),
 
-                          // 2. PASSWORD FIELD (With Toggle)
+                          // PASSWORD FIELD
                           _buildTextField(
                             controller: passCtrl,
                             label: 'Password',
                             icon: Icons.lock_outline,
                             isPassword: true,
-                            obscureTextState: _obscurePassword, // Pass current state
+                            obscureTextState: _obscurePassword,
                             onToggleVisibility: () {
                               setState(() {
                                 _obscurePassword = !_obscurePassword;
                               });
                             },
+                            fillColor: inputFillColor,
+                            textColor: inputTextColor,
+                            isDarkMode: isDarkMode,
                           ),
                           const SizedBox(height: 12),
 
-                          // 3. CONFIRM PASSWORD FIELD (With Toggle)
+                          // CONFIRM PASSWORD FIELD
                           _buildTextField(
                             controller: confirmPassCtrl,
                             label: 'Confirm Password',
                             icon: Icons.lock_outline,
                             isPassword: true,
-                            obscureTextState: _obscureConfirmPassword, // Pass current state
+                            obscureTextState: _obscureConfirmPassword,
                             onToggleVisibility: () {
                               setState(() {
                                 _obscureConfirmPassword = !_obscureConfirmPassword;
                               });
                             },
+                            fillColor: inputFillColor,
+                            textColor: inputTextColor,
+                            isDarkMode: isDarkMode,
                           ),
                           const SizedBox(height: 20),
 
@@ -241,13 +269,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   const SizedBox(height: 20),
                   RichText(
                     text: TextSpan(
-                      style: TextStyle(color: AppColors.textPrimary),
+                      style: TextStyle(color: subtitleColor), // Adaptive Text
                       children: [
                         const TextSpan(text: "Already have an account? "),
                         TextSpan(
                           text: "Sign in",
                           style: TextStyle(
-                            color: AppColors.primary,
+                            color: isDarkMode ? Colors.white : AppColors.primary,
                             fontWeight: FontWeight.w600,
                           ),
                           recognizer: TapGestureRecognizer()
@@ -274,31 +302,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  // 4. UPDATED HELPER METHOD
+  // 4. UPDATED HELPER METHOD TO ACCEPT THEME COLORS
   Widget _buildTextField({
     required TextEditingController controller,
     required String label,
     IconData? icon,
-    bool isPassword = false, // Flag to identify password fields
-    bool? obscureTextState,  // The specific boolean for this field
-    VoidCallback? onToggleVisibility, // The specific toggle function
+    bool isPassword = false,
+    bool? obscureTextState,
+    VoidCallback? onToggleVisibility,
     TextInputType keyboardType = TextInputType.text,
+    required Color fillColor,
+    required Color textColor,
+    required bool isDarkMode,
   }) {
-    // Determine the actual obscure state
-    // If it's a password field, use the passed state. Otherwise, false.
     final bool isObscured = isPassword ? (obscureTextState ?? true) : false;
 
     return TextFormField(
       controller: controller,
       obscureText: isObscured,
       keyboardType: keyboardType,
+      style: TextStyle(color: textColor), // Set Text Color (White/Black)
       decoration: InputDecoration(
         labelText: label,
+        labelStyle: TextStyle(color: isDarkMode ? Colors.grey[400] : Colors.grey[700]),
         filled: true,
-        fillColor: Colors.grey[100],
-        prefixIcon: icon != null ? Icon(icon, color: AppColors.primary) : null,
+        fillColor: fillColor, // Set Fill Color (Dark/Light)
+        prefixIcon: icon != null
+            ? Icon(icon, color: isDarkMode ? Colors.grey[400] : AppColors.primary) // Icon Color
+            : null,
 
-        // Add Eye Icon if it is a password field
         suffixIcon: isPassword
             ? IconButton(
           icon: Icon(
@@ -310,6 +342,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             : null,
 
         border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),

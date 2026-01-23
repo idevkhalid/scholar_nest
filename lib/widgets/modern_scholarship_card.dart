@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import '../constants/colors.dart';
 
-class ModernScholarshipCard extends StatefulWidget {
-  final String title, institution, badge, deadline, country;
-  final VoidCallback onSave;
-  final VoidCallback onTap;
+class ModernScholarshipCard extends StatelessWidget {
+  final String title;
+  final String institution;
+  final String badge; // Amount
+  final String deadline;
+  final String country;
   final bool isSaved;
+  final VoidCallback onTap;
+  final VoidCallback onSave;
 
   const ModernScholarshipCard({
     super.key,
@@ -14,90 +18,159 @@ class ModernScholarshipCard extends StatefulWidget {
     required this.badge,
     required this.deadline,
     required this.country,
-    required this.onSave,
-    required this.onTap,
     required this.isSaved,
+    required this.onTap,
+    required this.onSave,
   });
-
-  @override
-  State<ModernScholarshipCard> createState() => _ModernScholarshipCardState();
-}
-
-class _ModernScholarshipCardState extends State<ModernScholarshipCard> {
-  double _scale = 1.0;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: widget.onTap,
-      onTapDown: (_) => setState(() => _scale = 0.97),
-      onTapUp: (_) => setState(() => _scale = 1.0),
-      onTapCancel: () => setState(() => _scale = 1.0),
-      child: AnimatedScale(
-        scale: _scale,
-        duration: const Duration(milliseconds: 120),
-        child: Card(
-          margin: const EdgeInsets.symmetric(vertical: 10),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          elevation: 6,
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Badge + Save
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFE0E5EC).withOpacity(0.5),
+              blurRadius: 20,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // --- TOP ROW: BADGE & SAVE ---
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Amount Badge (Dark Blue Pill)
+                  if (badge.isNotEmpty)
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        gradient: const LinearGradient(colors: [
-                          Color(0xFF1B3C53),
-                          Color(0xFF2F5A75),
-                        ]),
+                        color: const Color(0xFF1E3A52), // Dark Slate Blue
+                        borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        widget.badge,
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        badge,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    )
+                  else
+                    const Spacer(), // Keeps the save icon to the right if no badge
+
+                  // Save Icon
+                  GestureDetector(
+                    onTap: onSave,
+                    child: Icon(
+                      isSaved ? Icons.bookmark : Icons.bookmark_border_rounded,
+                      color: isSaved ? AppColors.primary : const Color(0xFF1E3A52),
+                      size: 26,
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              // --- TITLE WITH CAP ICON ---
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF0F172A),
+                        height: 1.3,
+                        fontFamily: 'Poppins',
                       ),
                     ),
-                    IconButton(
-                      onPressed: widget.onSave,
-                      icon: Icon(
-                        widget.isSaved ? Icons.bookmark : Icons.bookmark_border,
-                        color: const Color(0xFF1B3C53),
+                  ),
+                  const SizedBox(width: 8),
+                  // 🎓 Scholarship Cap Icon
+                  const Padding(
+                    padding: EdgeInsets.only(top: 4),
+                    child: Icon(Icons.school, size: 24, color: Color(0xFF1E3A52)),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 8),
+
+              // --- INSTITUTION ---
+              Text(
+                institution,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF64748B), // Slate grey
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // --- BOTTOM ROW: DATE & LOCATION ---
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Deadline
+                  Row(
+                    children: [
+                      Icon(Icons.calendar_today_outlined, size: 16, color: Colors.grey[500]),
+                      const SizedBox(width: 6),
+                      Text(
+                        deadline,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                Text(widget.title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1B3C53))),
-                const SizedBox(height: 6),
-                Text(widget.institution, style: TextStyle(color: Colors.grey[800])),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
+                    ],
+                  ),
+
+                  // Location (Flexible prevents overflow)
+                  Flexible(
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.calendar_today, size: 16, color: Colors.grey),
+                        Icon(Icons.location_on, size: 16, color: Colors.grey[500]),
                         const SizedBox(width: 4),
-                        Text(widget.deadline),
+                        Flexible(
+                          child: Text(
+                            country,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on, size: 16, color: Colors.grey),
-                        const SizedBox(width: 4),
-                        Text(widget.country),
-                      ],
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
       ),

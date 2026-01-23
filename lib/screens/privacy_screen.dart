@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_cached_pdfview/flutter_cached_pdfview.dart';
 import '../constants/colors.dart';
 import '../services/api_service.dart';
+import '../widgets/modern_button.dart';
 
 class PrivacyPolicyScreen extends StatefulWidget {
   const PrivacyPolicyScreen({super.key});
@@ -13,9 +14,6 @@ class PrivacyPolicyScreen extends StatefulWidget {
 class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> {
   String? policyLink;
   bool isLoading = true;
-
-  // Using the Dark Navy as "primary"
-  static const Color primaryColor = Color(0xFF1B3C53);
 
   @override
   void initState() {
@@ -40,7 +38,7 @@ class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> {
     }
   }
 
-  // 👇 SPECIAL FUNCTION TO FIX GOOGLE DRIVE LINKS
+  // 👇 HELPER: Fix Google Drive Links to be Direct Download Links
   String _getDirectUrl(String originalUrl) {
     if (originalUrl.contains("drive.google.com") && originalUrl.contains("/file/d/")) {
       final parts = originalUrl.split('/file/d/');
@@ -74,24 +72,34 @@ class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // 1. THEME DETECTION
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    // 2. ADAPTIVE COLORS
+    final backgroundColor = isDarkMode ? const Color(0xFF121212) : const Color(0xFFEAF1F8);
+    final cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    final primaryTextColor = isDarkMode ? Colors.white : AppColors.primary;
+    final secondaryTextColor = isDarkMode ? Colors.grey[400] : Colors.grey.shade600;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFEAF1F8),
+      backgroundColor: backgroundColor,
       extendBodyBehindAppBar: true,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, color: primaryColor, size: 20),
+          // Ensure icon is visible on top of the header background
+          icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
           onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           "Privacy & Security",
-          style: TextStyle(color: primaryColor, fontWeight: FontWeight.bold),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator(color: primaryColor))
+          ? const Center(child: CircularProgressIndicator(color: AppColors.primary))
           : SingleChildScrollView(
         child: Column(
           children: [
@@ -100,13 +108,14 @@ class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> {
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(20, 110, 20, 50),
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.6),
+                // Darker opacity in dark mode, lighter in light mode, but keeping it Blue-ish
+                color: AppColors.primary.withOpacity(0.85),
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(30),
                   bottomRight: Radius.circular(30),
                 ),
                 border: Border.all(
-                  color: Colors.white.withOpacity(0.25),
+                  color: Colors.white.withOpacity(0.15),
                 ),
               ),
               child: Column(
@@ -118,13 +127,13 @@ class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: primaryColor.withOpacity(0.1),
+                          color: Colors.black.withOpacity(0.2),
                           blurRadius: 15,
                           offset: const Offset(0, 5),
                         )
                       ],
                     ),
-                    child: const Icon(Icons.security_rounded, size: 50, color: primaryColor),
+                    child: const Icon(Icons.security_rounded, size: 50, color: AppColors.primary),
                   ),
                   const SizedBox(height: 20),
                   const Text(
@@ -132,7 +141,7 @@ class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> {
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w800,
-                      color: primaryColor,
+                      color: Colors.white, // Changed to White for contrast against Blue Header
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -141,14 +150,14 @@ class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> {
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
-                      color: primaryColor.withOpacity(0.7),
+                      color: Colors.white.withOpacity(0.8),
                     ),
                   ),
                 ],
               ),
             ),
 
-            // --- WHITE CARD ---
+            // --- INFO CARD ---
             Transform.translate(
               offset: const Offset(0, -30),
               child: Padding(
@@ -156,11 +165,11 @@ class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> {
                 child: Container(
                   padding: const EdgeInsets.all(25),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: cardColor, // Adaptive Card
                     borderRadius: BorderRadius.circular(25),
                     boxShadow: [
                       BoxShadow(
-                        color: primaryColor.withOpacity(0.08),
+                        color: isDarkMode ? Colors.black.withOpacity(0.3) : AppColors.primary.withOpacity(0.08),
                         blurRadius: 20,
                         offset: const Offset(0, 10),
                       ),
@@ -168,37 +177,24 @@ class _PrivacyPolicyScreenState extends State<PrivacyPolicyScreen> {
                   ),
                   child: Column(
                     children: [
-                      const Text(
+                      Text(
                         "We respect your privacy",
+                        textAlign: TextAlign.center,
                         style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: primaryColor),
+                            color: primaryTextColor),
                       ),
                       const SizedBox(height: 15),
                       Text(
                         "Your personal data is encrypted and stored securely. Tap below to read the full official documentation directly in the app.",
                         textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.grey.shade600, height: 1.5),
+                        style: TextStyle(color: secondaryTextColor, height: 1.5),
                       ),
                       const SizedBox(height: 30),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 55,
-                        child: ElevatedButton(
-                          onPressed: _openPDFViewer,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: primaryColor,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(15)),
-                          ),
-                          child: const Text("Read Full Policy",
-                              style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold)),
-                        ),
+                      ModernButton(
+                        text: "Read Full Policy",
+                        onPressed: _openPDFViewer,
                       ),
                     ],
                   ),
@@ -219,9 +215,6 @@ class InternalPDFViewer extends StatelessWidget {
   final String pdfUrl;
   final String title;
 
-  // Use local constant to ensure it works even if AppColors import is missing
-  static const Color primaryColor = Color(0xFF1B3C53);
-
   const InternalPDFViewer({
     super.key,
     required this.pdfUrl,
@@ -230,39 +223,42 @@ class InternalPDFViewer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Theme check for PDF Viewer background
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFEAF1F8),
+      backgroundColor: isDarkMode ? const Color(0xFF121212) : const Color(0xFFEAF1F8),
       appBar: AppBar(
         title: Text(
           title,
           style: const TextStyle(
-            color: primaryColor, // Dark text to contrast with light opacity header
+            color: Colors.white, // Changed to White for visibility
             fontWeight: FontWeight.bold,
             fontSize: 20,
           ),
         ),
         centerTitle: true,
-        backgroundColor: Colors.transparent, // Must be transparent to show flexibleSpace
+        backgroundColor: Colors.transparent,
         elevation: 0,
-        iconTheme: const IconThemeData(color: primaryColor),
-        // 👇 CUSTOM HEADER DECORATION
+        // Icon color white to match text
+        iconTheme: const IconThemeData(color: Colors.white),
+        // Header Decoration
         flexibleSpace: Container(
           decoration: BoxDecoration(
-            color: primaryColor.withValues(alpha: .6), // Matches your request
+            color: AppColors.primary.withValues(alpha:0.9), // Dark Blue Header
             borderRadius: const BorderRadius.only(
               bottomLeft: Radius.circular(20),
               bottomRight: Radius.circular(20),
             ),
             border: Border.all(
-              color: Colors.white.withValues(alpha: .7),
+              color: Colors.white.withValues(alpha: .1),
             ),
           ),
         ),
       ),
-      // 👇 Padding removed so PDF connects directly to header
       body: const PDF().fromUrl(
         pdfUrl,
-        placeholder: (progress) => Center(child: Text('$progress %')),
+        placeholder: (progress) => Center(child: Text('$progress %', style: TextStyle(color: isDarkMode ? Colors.white : Colors.black))),
         errorWidget: (error) => Center(child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

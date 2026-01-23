@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../constants/colors.dart';
 import 're_enter_password_screen.dart';
+import '../widgets/modern_button.dart';
 
 class DeleteAccountScreen extends StatefulWidget {
   const DeleteAccountScreen({super.key});
@@ -48,10 +49,21 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen>
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
 
+    // 1. THEME DETECTION
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    // 2. COLOR VARIABLES
+    final backgroundColor = isDarkMode ? const Color(0xFF121212) : Colors.white; // Or match your scaffold background
+    final titleColor = isDarkMode ? Colors.white : AppColors.primary;
+    final bodyTextColor = isDarkMode ? Colors.grey[400] : AppColors.textSecondary;
+    final cancelButtonColor = isDarkMode ? Colors.white : AppColors.primary;
+
     return Scaffold(
+      backgroundColor: backgroundColor,
       body: Container(
+        // Only show gradient in Light Mode, otherwise transparent (to show scaffold bg)
         decoration: BoxDecoration(
-          gradient: AppColors.backgroundGradient,
+          gradient: isDarkMode ? null : AppColors.backgroundGradient,
         ),
         child: FadeTransition(
           opacity: _fade,
@@ -84,7 +96,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen>
                     style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
+                      color: titleColor, // Adaptive Color
                       letterSpacing: 1,
                     ),
                   ),
@@ -98,7 +110,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen>
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 15,
-                      color: AppColors.textSecondary,
+                      color: bodyTextColor, // Adaptive Color
                       height: 1.5,
                     ),
                   ),
@@ -110,15 +122,21 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen>
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Radio<bool>(
-                        value: true,
-                        groupValue: isDeleteSelected,
-                        activeColor: AppColors.primary,
-                        onChanged: (value) {
-                          setState(() {
-                            isDeleteSelected = true;
-                          });
-                        },
+                      Theme(
+                        // Force Radio accent color logic if needed
+                        data: Theme.of(context).copyWith(
+                          unselectedWidgetColor: isDarkMode ? Colors.grey : null,
+                        ),
+                        child: Radio<bool>(
+                          value: true,
+                          groupValue: isDeleteSelected,
+                          activeColor: AppColors.primary,
+                          onChanged: (value) {
+                            setState(() {
+                              isDeleteSelected = true;
+                            });
+                          },
+                        ),
                       ),
                       const SizedBox(width: 8),
                       Expanded(
@@ -126,7 +144,7 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen>
                           "I understand that deleting my account is permanent.",
                           style: TextStyle(
                             fontSize: 14,
-                            color: AppColors.textSecondary,
+                            color: bodyTextColor, // Adaptive Color
                           ),
                         ),
                       ),
@@ -137,43 +155,19 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen>
                   // --------------------------------------------------
                   // CONTINUE BUTTON
                   // --------------------------------------------------
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                  ModernButton(
+                    text: "CONTINUE",
+                    icon: Icons.arrow_forward,
+                    onPressed: isDeleteSelected
+                        ? () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const ReEnterPasswordScreen(),
                         ),
-                      ),
-                      onPressed: isDeleteSelected
-                          ? () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                            const ReEnterPasswordScreen(),
-                          ),
-                        );
-                      }
-                          : null,
-                      child: const Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'CONTINUE',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          SizedBox(width: 8),
-                          Icon(Icons.arrow_forward, color: Colors.white),
-                        ],
-                      ),
-                    ),
+                      );
+                    }
+                        : null,
                   ),
                   const SizedBox(height: 14),
 
@@ -185,17 +179,19 @@ class _DeleteAccountScreenState extends State<DeleteAccountScreen>
                     child: OutlinedButton(
                       onPressed: () => Navigator.pop(context),
                       style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: BorderSide(color: AppColors.primary),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        // Border changes color in dark mode so it's visible
+                        side: BorderSide(color: cancelButtonColor, width: 1.5),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(30),
                         ),
                       ),
                       child: Text(
                         "CANCEL",
                         style: TextStyle(
                           fontSize: 16,
-                          color: AppColors.primary,
+                          fontWeight: FontWeight.bold,
+                          color: cancelButtonColor, // Text changes color in dark mode
                         ),
                       ),
                     ),

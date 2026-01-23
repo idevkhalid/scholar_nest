@@ -1,28 +1,8 @@
-import 'dart:ui'; // Required for ImageFilter
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../services/api_service.dart';
+import '../constants/colors.dart';
 import 'WriteReviewScreen.dart';
-
-// --- YOUR COLOR FILE (Keep as is) ---
-class AppColors {
-  static const Color primary = Color(0xFF1B3C53);
-  static const Color background = Color(0xFFEAF1F8);
-  static const Color textPrimary = Color(0xFF1B3C53);
-  static const Color textSecondary = Color(0xFF7B7B7B);
-  static const Color cardBackground = Colors.white;
-
-  static const LinearGradient backgroundGradient = LinearGradient(
-    begin: Alignment.topCenter,
-    end: Alignment.bottomCenter,
-    colors: [
-      Color(0x9977A9FF),
-      Colors.white,
-    ],
-  );
-
-  static Color? get error => null;
-}
 
 class ConsultantProfileScreen extends StatefulWidget {
   final int consultantId;
@@ -30,12 +10,12 @@ class ConsultantProfileScreen extends StatefulWidget {
   const ConsultantProfileScreen({super.key, required this.consultantId});
 
   @override
-  State<ConsultantProfileScreen> createState() =>
-      _ConsultantProfileScreenState();
+  State<ConsultantProfileScreen> createState() => _ConsultantProfileScreenState();
 }
 
 class _ConsultantProfileScreenState extends State<ConsultantProfileScreen> {
   late Future<Map<String, dynamic>> _consultantFuture;
+  bool _showHours = false;
 
   @override
   void initState() {
@@ -44,508 +24,508 @@ class _ConsultantProfileScreenState extends State<ConsultantProfileScreen> {
   }
 
   // --- ACTIONS ---
-  Future<void> _launchUrl(String urlString) async {
-    if (urlString.isEmpty || urlString == "Not available") return;
-    if (!urlString.startsWith("http://") && !urlString.startsWith("https://")) {
-      urlString = "https://$urlString";
-    }
-    final Uri url = Uri.parse(urlString);
-    try {
-      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-        throw 'Could not launch $url';
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Could not open this link")),
-        );
-      }
-    }
-  }
+  Future<void> _launchAction(String? urlString, {bool isPhone = false, bool isEmail = false}) async {
+    if (urlString == null || urlString.isEmpty || urlString == "Not available") return;
 
-  Future<void> _makePhoneCall(String phoneNumber) async {
-    final Uri launchUri = Uri(scheme: 'tel', path: phoneNumber);
-    if (await canLaunchUrl(launchUri)) {
-      await launchUrl(launchUri);
+    Uri uri;
+    if (isPhone) {
+      uri = Uri(scheme: 'tel', path: urlString);
+    } else if (isEmail) {
+      uri = Uri(scheme: 'mailto', path: urlString);
+    } else {
+      String cleanUrl = urlString.trim();
+      if (!cleanUrl.startsWith("http")) cleanUrl = "https://$cleanUrl";
+      uri = Uri.parse(cleanUrl);
     }
-  }
-
-  Future<void> _sendEmail(String email) async {
-    if (email.isEmpty) return;
-
-    final Uri emailLaunchUri = Uri(
-      scheme: 'mailto',
-      path: email,
-      query: 'subject=Consultation Inquiry', // Optional: Adds a default subject line
-    );
 
     try {
-      // try launching directly
-      await launchUrl(emailLaunchUri, mode: LaunchMode.externalApplication);
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (e) {
-      // If that fails, try the generic check
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Could not open email client: $e")),
-        );
-      }
+      debugPrint("Could not launch $uri");
     }
   }
 
-  String _getInitials(String name) {
-    List<String> parts = name.trim().split(" ");
-    if (parts.length > 1) {
-      return "${parts[0][0]}${parts[1][0]}".toUpperCase();
-    } else if (parts.isNotEmpty) {
-      return parts[0][0].toUpperCase();
+  String _getInitials(String fName, String lName) {
+    return "${fName.isNotEmpty ? fName[0] : ''}${lName.isNotEmpty ? lName[0] : ''}".toUpperCase();
+  }
+
+  // --- HELPER: FORMAT TIME TO 12-HOUR ---
+  String _formatWorkingHours(dynamic value) {
+    if (value == null) return "Closed";
+
+    String start = "";
+    String end = "";
+
+    // Handle Map (e.g., {from: 09:00, to: 17:00})
+    if (value is Map) {
+      start = value['from'] ?? value['start'] ?? value['open'] ?? "";
+      end = value['to'] ?? value['end'] ?? value['close'] ?? "";
     }
-    return "C";
+    // Handle List (e.g., ["09:00", "17:00"])
+    else if (value is List && value.length >= 2) {
+      start = value[0].toString();
+      end = value[1].toString();
+    }
+    // Handle String (e.g., "09:00 - 17:00")
+    else if (value is String) {
+      if (value.toLowerCase().contains("closed")) return "Closed";
+      // Try to split by common separators if it's a single string
+      if (value.contains("-")) {
+        var parts = value.split("-");
+        if (parts.length == 2) {
+          start = parts[0];
+          end = parts[1];
+        } else {
+          return value; // Return as is if complicated
+        }
+      } else {
+        return value;
+      }
+    }
+
+    if (start.isEmpty && end.isEmpty) return "Closed";
+
+    String formatSingleTime(String t) {
+      t = t.trim().replaceAll(RegExp(r'[^0-9:]'), ''); // Clean non-time chars
+      if (t.isEmpty) return "";
+      try {
+        final parts = t.split(':');
+        int hour = int.parse(parts[0]);
+        int minute = parts.length > 1 ? int.parse(parts[1]) : 0;
+        String period = hour >= 12 ? 'PM' : 'AM';
+        if (hour > 12) hour -= 12;
+        if (hour == 0) hour = 12;
+        return "${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')} $period";
+      } catch (e) {
+        return t;
+      }
+    }
+
+    String s = formatSingleTime(start);
+    String e = formatSingleTime(end);
+
+    if (s.isEmpty) return "Closed";
+    if (e.isEmpty) return s;
+    return "$s - $e";
   }
 
   @override
   Widget build(BuildContext context) {
-    final double topPadding = MediaQuery.of(context).padding.top;
-    final double headerHeight = topPadding + 15 + 30 + 20;
+    // --- THEME SETTINGS ---
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+
+    final Color backgroundColor = isDarkMode ? const Color(0xFF121212) : const Color(0xFFF8F9FD);
+    final Color cardColor = isDarkMode ? const Color(0xFF1E1E1E) : Colors.white;
+    final Color primaryTextColor = isDarkMode ? Colors.white : Colors.black87;
+    final Color secondaryTextColor = isDarkMode ? Colors.grey[400]! : const Color(0xFF4A4A4A);
+    final Color dividerColor = isDarkMode ? Colors.grey[800]! : Colors.grey[200]!;
+
+    // Shadow
+    final List<BoxShadow> cardShadow = [
+      BoxShadow(
+        color: isDarkMode ? Colors.black.withOpacity(0.3) : Colors.blue.withOpacity(0.1),
+        blurRadius: 15,
+        offset: const Offset(0, 5),
+      )
+    ];
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppColors.backgroundGradient,
+      backgroundColor: backgroundColor,
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: Container(
+          margin: const EdgeInsets.all(8),
+          decoration: const BoxDecoration(
+              color: Colors.black26,
+              shape: BoxShape.circle
+          ),
+          child: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: () => Navigator.pop(context),
+          ),
         ),
-        child: Stack(
-          children: [
-            // --- SCROLLABLE BODY ---
-            FutureBuilder<Map<String, dynamic>>(
-              future: _consultantFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator(color: AppColors.primary));
-                }
-                if (snapshot.hasError) {
-                  return Center(child: Text("Error: ${snapshot.error}"));
-                }
+      ),
+      body: FutureBuilder<Map<String, dynamic>>(
+        future: _consultantFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator(color: AppColors.primary));
+          }
+          if (!snapshot.hasData || snapshot.data?['data'] == null) {
+            return Center(child: Text("Profile not found", style: TextStyle(color: primaryTextColor)));
+          }
 
-                final responseData = snapshot.data;
-                if (responseData == null || responseData["status"] != "success") {
-                  return Center(child: Text("Failed: ${responseData?['message'] ?? 'Unknown Error'}"));
-                }
+          final data = snapshot.data!['data'];
+          final user = data['user'] ?? {};
 
-                // --- DATA MAPPING (UPDATED FOR NEW API) ---
-                final data = responseData["data"] ?? {};
-                final user = data["user"] ?? {};
+          // --- DATA EXTRACTION ---
+          final fullName = "${user['f_name'] ?? ''} ${user['l_name'] ?? ''}".trim();
+          final title = data['professional_title'] ?? 'Consultant';
+          final bio = data['bio'] ?? data['experience_summary'] ?? "No details available.";
+          final avatar = user['avatar'];
 
-                // Name & Identity
-                final String fName = user["f_name"] ?? "";
-                final String lName = user["l_name"] ?? "";
-                final String fullName = "$fName $lName".trim().isEmpty ? "Consultant" : "$fName $lName";
-                final String title = data["professional_title"] ?? "Professional Consultant";
+          final phone = data['phone'];
+          final email = user['email'];
+          final website = data['company_website'];
+          final linkedin = data['linkedin_profile'];
 
-                // Contact
-                final String phone = data["phone"] ?? user["phone"] ?? "";
-                final String email = user["email"] ?? "";
-                final String website = data["company_website"] ?? "";
+          final rating = (data['average_rating'] ?? 0).toString();
+          final reviewsCount = (data['total_reviews'] ?? 0).toString();
+          final experience = (data['years_experience'] ?? 0).toString();
 
-                // Stats
-                final num rating = num.tryParse(data["average_rating"].toString()) ?? 0.0;
-                final int totalReviews = int.tryParse(data["total_reviews"].toString()) ?? 0;
-                final int yearsExp = int.tryParse(data["years_experience"].toString()) ?? 0;
+          final isAvailable = data['is_available_for_consultation'] == true || data['is_available_for_consultation'] == 1;
+          final Map<String, dynamic> workingHours = data['working_hours'] is Map<String, dynamic> ? data['working_hours'] : {};
 
-                // Address
-                String address = [
-                  data["street_address"],
-                  data["city"],
-                  data["state"],
-                  data["country"]
-                ].where((s) => s != null && s.toString().isNotEmpty).join(", ");
+          // Lists
+          final specializations = List<String>.from(data['specializations'] ?? []);
+          final countries = List<String>.from(data['expertise_countries'] ?? []);
+          final languages = List<String>.from(data['languages'] ?? []);
+          final qualifications = List<String>.from(data['qualifications'] ?? []);
 
-                return SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  padding: EdgeInsets.only(
-                      top: headerHeight + 20,
-                      left: 20,
-                      right: 20,
-                      bottom: 40
+          return SingleChildScrollView(
+            padding: const EdgeInsets.only(bottom: 40),
+            child: Column(
+              children: [
+
+                // ===========================================
+                // 1. HEADER
+                // ===========================================
+                Stack(
+                  alignment: Alignment.bottomCenter,
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: double.infinity,
+                      height: 280,
+                      decoration: const BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.only(bottomLeft: Radius.circular(30), bottomRight: Radius.circular(30)),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(height: 20),
+                          Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.3)),
+                            child: CircleAvatar(
+                              radius: 45,
+                              backgroundColor: cardColor,
+                              backgroundImage: (avatar != null && avatar.isNotEmpty) ? NetworkImage(avatar) : null,
+                              child: (avatar == null)
+                                  ? Text(_getInitials(user['f_name']??'', user['l_name']??''), style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.primary))
+                                  : null,
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(fullName, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
+                          Text(title, style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.9))),
+
+                          const SizedBox(height: 15),
+
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              if(phone != null) _buildHeaderActionBtn(Icons.call, "Call", () => _launchAction(phone, isPhone: true)),
+                              if(email != null) _buildHeaderActionBtn(Icons.email, "Email", () => _launchAction(email, isEmail: true)),
+                              if(website != null) _buildHeaderActionBtn(Icons.language, "Web", () => _launchAction(website)),
+                              if(linkedin != null) _buildHeaderActionBtn(Icons.link, "Link", () => _launchAction(linkedin)),
+                            ],
+                          )
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                // ===========================================
+                // 2. STATS
+                // ===========================================
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 10),
+                  decoration: BoxDecoration(
+                    color: cardColor,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: cardShadow,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildBetterStat(experience, "Years Exp", Icons.work_history, Colors.blue, primaryTextColor),
+                      Container(height: 40, width: 1, color: dividerColor),
+                      _buildBetterStat(rating, "Rating", Icons.star_rounded, Colors.orange, primaryTextColor),
+                      Container(height: 40, width: 1, color: dividerColor),
+                      _buildBetterStat(reviewsCount, "Reviews", Icons.people_alt, Colors.purple, primaryTextColor),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // ===========================================
+                // 3. LANGUAGES CARD
+                // ===========================================
+                if(languages.isNotEmpty)
+                  _buildModernSection(
+                      "Languages Spoken", Icons.translate,
+                      _buildModernChips(languages, AppColors.primary, isDarkMode, cardColor),
+                      cardColor, cardShadow, primaryTextColor
+                  ),
+
+                // ===========================================
+                // 4. AVAILABILITY & HOURS (UPDATED)
+                // ===========================================
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: cardColor,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: cardShadow,
                   ),
                   child: Column(
                     children: [
-                      // Avatar
-                      Center(
-                        child: Container(
-                          decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white.withOpacity(0.5), width: 4),
-                              boxShadow: [
-                                BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 15, offset: const Offset(0, 5))
-                              ]
-                          ),
-                          child: CircleAvatar(
-                            radius: 55,
-                            backgroundColor: AppColors.primary,
-                            // You can add data['user']['avatar'] logic here if API returns an image URL
-                            child: Text(
-                              _getInitials(fullName),
-                              style: const TextStyle(fontSize: 34, fontWeight: FontWeight.bold, color: Colors.white),
+                      // Status Header
+                      InkWell(
+                        onTap: () => setState(() => _showHours = !_showHours),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                  color: isAvailable ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                                  shape: BoxShape.circle
+                              ),
+                              child: Icon(Icons.access_time_filled, color: isAvailable ? Colors.green : Colors.red, size: 20),
                             ),
-                          ),
+                            const SizedBox(width: 15),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("Consultation Status", style: TextStyle(color: secondaryTextColor, fontSize: 12)),
+                                Text(isAvailable ? "Available Now" : "Currently Busy", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isAvailable ? Colors.green[700] : Colors.red[700])),
+                              ],
+                            ),
+                            const Spacer(),
+                            if(workingHours.isNotEmpty)
+                              Icon(_showHours ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down, color: Colors.grey)
+                          ],
                         ),
                       ),
 
-                      const SizedBox(height: 15),
+                      // CLEANED HOURS LIST
+                      if (_showHours && workingHours.isNotEmpty) ...[
+                        const SizedBox(height: 20),
+                        Container(height: 1, width: double.infinity, color: dividerColor),
+                        const SizedBox(height: 15),
+                        ...workingHours.entries.map((e) {
+                          String day = e.key[0].toUpperCase() + e.key.substring(1);
+                          String formattedTime = _formatWorkingHours(e.value);
+                          bool isClosed = formattedTime == "Closed";
 
-                      // Name & Title
-                      Text(fullName,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                      const SizedBox(height: 6),
-                      Text(title,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
-
-                      const SizedBox(height: 20),
-
-                      // --- NEW: QUICK STATS ROW ---
-                      _buildStatsRow(yearsExp, rating, totalReviews),
-
-                      const SizedBox(height: 25),
-
-                      // --- UPDATED: Contact Buttons (Call, Email, Web) ---
-                      Row(
-                        children: [
-                          if (phone.isNotEmpty)
-                            Expanded(child: _buildContactButton(Icons.call, "Call", phone, () => _makePhoneCall(phone))),
-                          if (phone.isNotEmpty && (email.isNotEmpty || website.isNotEmpty))
-                            const SizedBox(width: 10),
-                          if (email.isNotEmpty)
-                            Expanded(child: _buildContactButton(Icons.email, "Email", "Send Mail", () => _sendEmail(email))),
-                          if (email.isNotEmpty && website.isNotEmpty)
-                            const SizedBox(width: 10),
-                          if (website.isNotEmpty && website != "Not available")
-                            Expanded(child: _buildContactButton(Icons.language, "Website", "Visit", () => _launchUrl(website))),
-                        ],
-                      ),
-
-                      const SizedBox(height: 20),
-
-                      // --- NEW: SOCIAL MEDIA LINKS ---
-                      _buildSocialMediaSection(data),
-
-                      const SizedBox(height: 20),
-
-                      // Details Sections
-                      _buildDetailSection("About", data["bio"] ?? data["experience_summary"]),
-
-                      // --- NEW: Availability Section ---
-                      _buildAvailabilitySection(data["working_hours"], data["is_available_for_consultation"]),
-
-                      if (address.isNotEmpty) _buildLocationSection(address),
-
-                      // --- UPDATED: Expertise (Now includes Countries & Languages) ---
-                      _buildExpertiseSection(
-                          specializations: data["specializations"],
-                          qualifications: data["qualifications"],
-                          countries: data["expertise_countries"],
-                          languages: data["languages"]
-                      ),
-
-                      const SizedBox(height: 10),
-
-                      // Reviews Widget (Kept from your code)
-                      ReviewsListWidget(consultantId: widget.consultantId),
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(day, style: TextStyle(fontWeight: FontWeight.w600, color: secondaryTextColor, fontSize: 14)),
+                                isClosed
+                                    ? Text("Closed", style: TextStyle(color: Colors.red[300], fontSize: 13, fontWeight: FontWeight.w500))
+                                    : Text(formattedTime, style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: isDarkMode ? Colors.white : Colors.black87)),
+                              ],
+                            ),
+                          );
+                        }).toList(),
+                      ]
                     ],
                   ),
-                );
-              },
-            ),
-
-            // --- GLASS HEADER (Fixed) ---
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
                 ),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-                  child: Container(
-                    width: double.infinity,
-                    padding: EdgeInsets.only(
-                      top: topPadding + 15,
-                      bottom: 20,
-                      left: 20,
-                      right: 20,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.3),
-                      borderRadius: const BorderRadius.only(
-                        bottomLeft: Radius.circular(30),
-                        bottomRight: Radius.circular(30),
+
+                const SizedBox(height: 20),
+
+                // ===========================================
+                // 5. DETAILS SECTIONS
+                // ===========================================
+                _buildModernSection(
+                    "About", Icons.person_outline,
+                    Text(bio, style: TextStyle(height: 1.6, color: secondaryTextColor)),
+                    cardColor, cardShadow, primaryTextColor
+                ),
+
+                if(specializations.isNotEmpty)
+                  _buildModernSection(
+                      "Specializations", Icons.verified_outlined,
+                      _buildModernChips(specializations, AppColors.primary, isDarkMode, cardColor),
+                      cardColor, cardShadow, primaryTextColor
+                  ),
+
+                if(countries.isNotEmpty)
+                  _buildModernSection(
+                      "Expertise Countries", Icons.public,
+                      _buildModernChips(countries, Colors.orange[700]!, isDarkMode, cardColor),
+                      cardColor, cardShadow, primaryTextColor
+                  ),
+
+                if(qualifications.isNotEmpty)
+                  _buildModernSection(
+                      "Qualifications", Icons.school_outlined,
+                      Column(
+                        children: qualifications.map((q) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(children: [
+                            const Icon(Icons.check_circle, size: 18, color: Colors.green),
+                            const SizedBox(width: 10),
+                            Expanded(child: Text(q, style: TextStyle(color: secondaryTextColor, fontWeight: FontWeight.w500)))
+                          ]),
+                        )).toList(),
                       ),
-                      border: Border.all(color: Colors.white.withOpacity(0.25)),
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        IconButton(
-                          onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 20),
-                          padding: EdgeInsets.zero,
-                          constraints: const BoxConstraints(),
-                        ),
-                        const Text(
-                          "Consultant Profile",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(width: 20),
-                      ],
-                    ),
+                      cardColor, cardShadow, primaryTextColor
+                  ),
+
+                // ===========================================
+                // 6. REVIEWS
+                // ===========================================
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text("Client Reviews", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryTextColor)),
+                      Text("($reviewsCount)", style: TextStyle(color: secondaryTextColor)),
+                    ],
                   ),
                 ),
-              ),
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                      color: cardColor,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: cardShadow
+                  ),
+                  child: ReviewsListWidget(
+                      consultantId: widget.consultantId,
+                      cardColor: cardColor,
+                      textColor: primaryTextColor,
+                      secondaryTextColor: secondaryTextColor,
+                      isDarkMode: isDarkMode
+                  ),
+                ),
+                const SizedBox(height: 40),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
 
   // --- WIDGET HELPERS ---
 
-  // 1. New Stats Row Helper
-  Widget _buildStatsRow(int years, num rating, int reviews) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 15),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+  Widget _buildHeaderActionBtn(IconData icon, String label, VoidCallback onTap) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: Column(
         children: [
-          _buildSingleStat("$years Yrs", "Experience"),
-          Container(height: 30, width: 1, color: Colors.grey.shade300),
-          _buildSingleStat(rating.toStringAsFixed(1), "Rating", icon: Icons.star, iconColor: Colors.amber),
-          Container(height: 30, width: 1, color: Colors.grey.shade300),
-          _buildSingleStat("$reviews", "Reviews"),
+          InkWell(
+            onTap: onTap,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(15),
+                  border: Border.all(color: Colors.white.withOpacity(0.3))
+              ),
+              child: Icon(icon, color: Colors.white, size: 22),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(label, style: const TextStyle(color: Colors.white70, fontSize: 10))
         ],
       ),
     );
   }
 
-  Widget _buildSingleStat(String value, String label, {IconData? icon, Color? iconColor}) {
+  Widget _buildBetterStat(String value, String label, IconData icon, Color color, Color textColor) {
     return Column(
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-            if (icon != null) ...[
-              const SizedBox(width: 4),
-              Icon(icon, size: 16, color: iconColor)
-            ]
-          ],
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+          child: Icon(icon, size: 20, color: color),
         ),
-        const SizedBox(height: 4),
-        Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+        const SizedBox(height: 8),
+        Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor)),
+        Text(label, style: TextStyle(fontSize: 11, color: Colors.grey[500], fontWeight: FontWeight.w500)),
       ],
     );
   }
 
-  // 2. Updated Social Media Helper
-  Widget _buildSocialMediaSection(Map<String, dynamic> data) {
-    List<Widget> socialButtons = [];
-
-    void addBtn(String? url, IconData icon, Color bg) {
-      if (url != null && url.isNotEmpty) {
-        socialButtons.add(InkWell(
-          onTap: () => _launchUrl(url),
-          child: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(color: bg.withOpacity(0.1), shape: BoxShape.circle),
-            child: Icon(icon, color: bg, size: 22),
+  Widget _buildModernSection(String title, IconData icon, Widget content, Color cardColor, List<BoxShadow> shadow, Color titleColor) {
+    return Container(
+      margin: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: shadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: AppColors.primary, size: 20),
+              const SizedBox(width: 10),
+              Text(title, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: titleColor)),
+            ],
           ),
-        ));
-      }
-    }
-
-    addBtn(data['linkedin_profile'], Icons.link, const Color(0xFF0077B5)); // LinkedIn Blue
-    addBtn(data['twitter_profile'], Icons.alternate_email, const Color(0xFF1DA1F2)); // Twitter Blue
-    addBtn(data['facebook_profile'], Icons.facebook, const Color(0xFF4267B2)); // FB Blue
-
-    // Portfolios
-    if (data['portfolio_links'] != null && (data['portfolio_links'] as List).isNotEmpty) {
-      addBtn(data['portfolio_links'][0], Icons.work_outline, Colors.orange);
-    }
-
-    if (socialButtons.isEmpty) return const SizedBox.shrink();
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        ...socialButtons.expand((widget) => [widget, const SizedBox(width: 15)]).toList()..removeLast(),
-      ],
+          const SizedBox(height: 15),
+          content,
+        ],
+      ),
     );
   }
 
-  Widget _buildContactButton(IconData icon, String label, String value, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(15),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+  Widget _buildModernChips(List<String> items, Color color, bool isDarkMode, Color cardColor) {
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      children: items.map((t) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(15),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4))],
+            color: isDarkMode ? color.withOpacity(0.1) : Colors.white,
+            borderRadius: BorderRadius.circular(30),
+            border: Border.all(color: color.withOpacity(0.3)),
+            boxShadow: isDarkMode ? null : [BoxShadow(color: color.withOpacity(0.05), blurRadius: 5)]
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), shape: BoxShape.circle),
-              child: Icon(icon, color: AppColors.primary, size: 18),
-            ),
-            const SizedBox(height: 8),
-            Text(label.toUpperCase(), style: const TextStyle(fontSize: 10, color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
-          ],
-        ),
-      ),
+        child: Text(t, style: TextStyle(color: isDarkMode ? color.withOpacity(0.9) : color, fontSize: 12, fontWeight: FontWeight.w600)),
+      )).toList(),
     );
-  }
-
-  Widget _buildDetailSection(String title, String? content) {
-    if (content == null || content.isEmpty) return const SizedBox.shrink();
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-      const SizedBox(height: 10),
-      Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.withOpacity(0.1))),
-        child: Text(content, style: const TextStyle(fontSize: 15, height: 1.6, color: AppColors.textSecondary)),
-      ),
-      const SizedBox(height: 25),
-    ]);
-  }
-
-  // 3. New Availability & Hours Section
-  Widget _buildAvailabilitySection(Map<String, dynamic>? hours, bool? isAvailable) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text("Availability", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                  color: (isAvailable ?? false) ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(20)
-              ),
-              child: Text(
-                (isAvailable ?? false) ? "Available Now" : "Unavailable",
-                style: TextStyle(color: (isAvailable ?? false) ? Colors.green : Colors.red, fontWeight: FontWeight.bold, fontSize: 12),
-              ),
-            )
-          ],
-        ),
-        const SizedBox(height: 10),
-        if (hours != null)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.withOpacity(0.1))),
-            child: Column(
-              children: hours.entries.map((e) => Padding(
-                padding: const EdgeInsets.only(bottom: 8.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(e.key.toUpperCase(), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
-                    Text(e.value.toString(), style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                  ],
-                ),
-              )).toList(),
-            ),
-          ),
-        const SizedBox(height: 25),
-      ],
-    );
-  }
-
-  Widget _buildLocationSection(String address) {
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text("Location", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-      const SizedBox(height: 10),
-      Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.grey.withOpacity(0.1))),
-        child: Row(
-          children: [
-            const Icon(Icons.location_on, color: Colors.redAccent, size: 24),
-            const SizedBox(width: 12),
-            Expanded(child: Text(address, style: const TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.w500))),
-          ],
-        ),
-      ),
-      const SizedBox(height: 25),
-    ]);
-  }
-
-  // 4. Updated Expertise (Groups multiple arrays)
-  Widget _buildExpertiseSection({
-    required dynamic specializations,
-    required dynamic qualifications,
-    required dynamic countries,
-    required dynamic languages,
-  }) {
-    List<String> items = [];
-    if (specializations != null) items.addAll(List<String>.from(specializations));
-    if (qualifications != null) items.addAll(List<String>.from(qualifications));
-    if (countries != null) items.addAll(List<String>.from(countries));
-    if (languages != null) items.addAll(List<String>.from(languages));
-
-    if (items.isEmpty) return const SizedBox.shrink();
-
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text("Expertise & Qualifications", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-      const SizedBox(height: 10),
-      Wrap(
-        spacing: 10, runSpacing: 10,
-        children: items.map((i) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.primary.withOpacity(0.2))),
-          child: Text(i, style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 13)),
-        )).toList(),
-      ),
-      const SizedBox(height: 25),
-    ]);
   }
 }
 
-// ... Keep your existing ReviewsListWidget and _ReviewItem code exactly as it was ...
-
-// ------------------------------------------------------------------
-//  REVIEWS LIST
-// ------------------------------------------------------------------
-// ------------------------------------------------------------------
-//  REVIEWS LIST (Updated with "See More" logic)
-// ------------------------------------------------------------------
+// --- REVIEWS LIST WIDGET ---
 class ReviewsListWidget extends StatefulWidget {
   final int consultantId;
-  const ReviewsListWidget({super.key, required this.consultantId});
+  final Color cardColor;
+  final Color textColor;
+  final Color secondaryTextColor;
+  final bool isDarkMode;
+
+  const ReviewsListWidget({
+    super.key,
+    required this.consultantId,
+    required this.cardColor,
+    required this.textColor,
+    required this.secondaryTextColor,
+    required this.isDarkMode,
+  });
 
   @override
   State<ReviewsListWidget> createState() => _ReviewsListWidgetState();
@@ -553,9 +533,6 @@ class ReviewsListWidget extends StatefulWidget {
 
 class _ReviewsListWidgetState extends State<ReviewsListWidget> {
   late Future<Map<String, dynamic>> _reviewsFuture;
-
-  // 1. New variable to control "See More" / "See Less"
-  bool _isExpanded = false;
 
   @override
   void initState() {
@@ -571,139 +548,77 @@ class _ReviewsListWidgetState extends State<ReviewsListWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _reviewsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: Padding(padding: EdgeInsets.all(10), child: CircularProgressIndicator()));
+
+        List reviews = [];
+        try {
+          if (snapshot.data != null && snapshot.data!['data'] != null) {
+            var r = snapshot.data!['data']['reviews'];
+            reviews = (r is Map && r['data'] is List) ? r['data'] : (r is List ? r : []);
+          }
+        } catch (_) {}
+
+        if (reviews.isEmpty) return Center(
+          child: Column(children: [
+            Icon(Icons.rate_review_outlined, size: 40, color: widget.secondaryTextColor.withOpacity(0.5)),
+            const SizedBox(height: 10),
+            Text("No reviews yet", style: TextStyle(color: widget.secondaryTextColor)),
+            TextButton(
+                onPressed: () async { await Navigator.push(context, MaterialPageRoute(builder: (_) => WriteReviewScreen(consultantId: widget.consultantId))); _loadReviews(); },
+                child: const Text("Be the first to write a review")
+            )
+          ]),
+        );
+
+        return Column(
           children: [
-            const Text("Reviews",
-                style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary)),
-            InkWell(
-              onTap: () async {
-                await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => WriteReviewScreen(
-                            consultantId: widget.consultantId)));
-                _loadReviews();
-              },
-              child: const Text("Write Review",
-                  style: TextStyle(
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18)),
-            ),
+            ...reviews.take(3).map((r) => _ReviewItem(
+              reviewData: r,
+              cardColor: widget.cardColor,
+              textColor: widget.textColor,
+              secondaryTextColor: widget.secondaryTextColor,
+              isDarkMode: widget.isDarkMode,
+            )),
+
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.edit, size: 16),
+                label: const Text("Write a Review"),
+                style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    side: const BorderSide(color: AppColors.primary),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))
+                ),
+                onPressed: () async { await Navigator.push(context, MaterialPageRoute(builder: (_) => WriteReviewScreen(consultantId: widget.consultantId))); _loadReviews(); },
+              ),
+            )
           ],
-        ),
-        const SizedBox(height: 15),
-        FutureBuilder<Map<String, dynamic>>(
-          future: _reviewsFuture,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
-                  child: CircularProgressIndicator(color: AppColors.primary));
-            }
-
-            // Safe parsing
-            List reviews = [];
-            final data = snapshot.data;
-            try {
-              if (data != null &&
-                  data['data'] is Map &&
-                  data['data']['reviews'] != null) {
-                var rData = data['data']['reviews'];
-                reviews = (rData is Map && rData['data'] is List)
-                    ? rData['data']
-                    : (rData is List ? rData : []);
-              }
-            } catch (_) {}
-
-            if (reviews.isEmpty) {
-              return Container(
-                padding: const EdgeInsets.all(30),
-                decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16)),
-                child: Center(
-                    child: Text("No reviews yet.",
-                        style: TextStyle(color: Colors.grey.shade500))),
-              );
-            }
-
-            // 2. Logic to slice the list
-            final int initialCount = 3; // How many to show initially
-            final bool hasMore = reviews.length > initialCount;
-
-            // If expanded, show all. If not, show only the first 4.
-            final List visibleReviews = _isExpanded
-                ? reviews
-                : (hasMore ? reviews.sublist(0, initialCount) : reviews);
-
-            return Column(
-              children: [
-                // Render the visible list
-                ...visibleReviews.map((r) => r is Map<String, dynamic>
-                    ? _ReviewItem(reviewData: r)
-                    : const SizedBox()).toList(),
-
-                // 3. The "See More" Button
-                if (hasMore)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 10),
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: TextButton(
-                        onPressed: () {
-                          setState(() {
-                            _isExpanded = !_isExpanded;
-                          });
-                        },
-                        style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            backgroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                side: BorderSide(color: AppColors.primary.withOpacity(0.2))
-                            )
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              _isExpanded ? "Show Less" : "See More Reviews (${reviews.length - initialCount} more)",
-                              style: const TextStyle(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Icon(
-                              _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                              color: AppColors.primary,
-                              size: 20,
-                            )
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            );
-          },
-        ),
-      ],
+        );
+      },
     );
   }
 }
-// ------------------------------------------------------------------
-//  REVIEW ITEM (Reactions Fixed: Left - Center - Right)
-// ------------------------------------------------------------------
+
+// --- REVIEW ITEM ---
 class _ReviewItem extends StatefulWidget {
   final Map<String, dynamic> reviewData;
-  const _ReviewItem({required this.reviewData});
+  final Color cardColor;
+  final Color textColor;
+  final Color secondaryTextColor;
+  final bool isDarkMode;
+
+  const _ReviewItem({
+    required this.reviewData,
+    required this.cardColor,
+    required this.textColor,
+    required this.secondaryTextColor,
+    required this.isDarkMode,
+  });
 
   @override
   State<_ReviewItem> createState() => _ReviewItemState();
@@ -728,8 +643,11 @@ class _ReviewItemState extends State<_ReviewItem> {
 
     final r = widget.reviewData['my_reaction'];
     if (r != null) {
-      if (r is Map && r['reaction'] != null) myReactionType = r['reaction'].toString();
-      else if (r is String) myReactionType = r;
+      if (r is Map && r['reaction'] != null) {
+        myReactionType = r['reaction'].toString();
+      } else if (r is String) {
+        myReactionType = r;
+      }
     }
   }
 
@@ -780,68 +698,81 @@ class _ReviewItemState extends State<_ReviewItem> {
   Widget build(BuildContext context) {
     final userObj = widget.reviewData['user'] ?? {};
     final userName = "${userObj['f_name'] ?? ''} ${userObj['l_name'] ?? ''}".trim();
-    final rating = widget.reviewData['rating'] ?? 0;
+    final rating = num.tryParse(widget.reviewData['rating'].toString()) ?? 0;
     final reviewText = widget.reviewData['review'] ?? widget.reviewData['comment'] ?? "";
     final reply = widget.reviewData['consultant_reply'];
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 15),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 3))],
-      ),
+      margin: const EdgeInsets.only(bottom: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               CircleAvatar(
-                radius: 18,
+                radius: 20,
                 backgroundColor: AppColors.primary.withOpacity(0.1),
-                child: Text(_getInitials(userObj['f_name'], userObj['l_name']), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                child: Text(_getInitials(userObj['f_name'], userObj['l_name']), style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary)),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(userName.isEmpty ? "Anonymous" : userName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary)),
+                    Text(userName.isEmpty ? "Anonymous" : userName, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: widget.textColor)),
+                    const SizedBox(height: 2),
                     Row(
-                      children: List.generate(5, (index) => Icon(index < rating ? Icons.star_rounded : Icons.star_outline_rounded, size: 14, color: index < rating ? Colors.amber : Colors.grey.shade300)),
+                      children: List.generate(5, (index) => Icon(index < rating ? Icons.star_rounded : Icons.star_outline_rounded, size: 16, color: index < rating ? Colors.amber : Colors.grey.shade300)),
                     )
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Text(reviewText, style: const TextStyle(color: AppColors.textPrimary, height: 1.5, fontSize: 14)),
+          const SizedBox(height: 12),
+          Text(reviewText, style: TextStyle(color: widget.textColor.withOpacity(0.9), height: 1.5, fontSize: 14)),
 
           if (reply != null) ...[
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(8)),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            const SizedBox(height: 15),
+            IntrinsicHeight(
+              child: Row(
                 children: [
-                  const Text("Response:", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
-                  const SizedBox(height: 2),
-                  Text(reply, style: const TextStyle(fontSize: 13, color: AppColors.textPrimary)),
+                  Container(width: 3, color: AppColors.primary.withOpacity(0.5)),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                          color: widget.isDarkMode ? Colors.white.withOpacity(0.05) : Colors.grey[100],
+                          borderRadius: BorderRadius.circular(8)
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.subdirectory_arrow_right, size: 16, color: widget.secondaryTextColor),
+                              const SizedBox(width: 5),
+                              Text("Consultant Reply", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: widget.secondaryTextColor)),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(reply, style: TextStyle(fontSize: 13, color: widget.textColor.withOpacity(0.85))),
+                        ],
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
           ],
 
-          const SizedBox(height: 16),
-          const Divider(),
+          const SizedBox(height: 15),
+          Divider(color: widget.secondaryTextColor.withOpacity(0.2)),
 
-          // --- FIXED REACTION ROW (SpaceBetween for Left/Center/Right placement) ---
           Padding(
-            padding: const EdgeInsets.only(top: 8),
+            padding: const EdgeInsets.only(top: 5),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -858,17 +789,18 @@ class _ReviewItemState extends State<_ReviewItem> {
 
   Widget _buildAction(String type, IconData iconOff, IconData iconOn, int count) {
     bool isActive = myReactionType == type;
-    Color color = isActive ? AppColors.primary : Colors.grey.shade400;
+    Color color = isActive ? AppColors.primary : widget.secondaryTextColor;
 
     return InkWell(
       onTap: () => _handleReaction(type),
+      borderRadius: BorderRadius.circular(20),
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         child: Row(
           children: [
-            Icon(isActive ? iconOn : iconOff, size: 20, color: color),
+            Icon(isActive ? iconOn : iconOff, size: 18, color: color),
             const SizedBox(width: 6),
-            Text("$count", style: TextStyle(fontSize: 13, color: color, fontWeight: FontWeight.bold)),
+            Text("$count", style: TextStyle(fontSize: 13, color: color, fontWeight: isActive ? FontWeight.bold : FontWeight.w500)),
           ],
         ),
       ),

@@ -2,6 +2,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../constants/colors.dart';
 import '../services/api_service.dart'; // Import your ApiService
+import '../widgets/modern_text_field.dart';
+import '../widgets/modern_button.dart';
+import '../widgets/premium_background.dart';
 
 class ContactSupportScreen extends StatefulWidget {
   const ContactSupportScreen({super.key});
@@ -82,11 +85,8 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
     final double topPadding = MediaQuery.of(context).padding.top;
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: AppColors.backgroundGradient,
-        ),
-        child: SafeArea(
+      body: PremiumBackground( // Use Unified Background
+        child: SafeArea( // PremiumBackground doesn't have Safe Area by default, but we control it here
           top: false,
           child: SingleChildScrollView(
             physics: const BouncingScrollPhysics(),
@@ -109,19 +109,22 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                         right: 20,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.3),
+                        color: AppColors.primary.withValues(alpha: 0.85), // Darker Navy for consistency
                         borderRadius: const BorderRadius.only(
                           bottomLeft: Radius.circular(30),
                           bottomRight: Radius.circular(30),
                         ),
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.25),
+                          color: Colors.white.withValues(alpha: 0.1),
                         ),
+                        boxShadow: [
+                           BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 10, offset: const Offset(0, 5))
+                        ]
                       ),
                       child: Row(
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.arrow_back, color: Colors.white),
+                            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white, size: 20),
                             onPressed: () => Navigator.pop(context),
                           ),
                           const SizedBox(width: 8),
@@ -131,6 +134,7 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                               fontSize: 20,
                               fontWeight: FontWeight.bold,
                               color: Colors.white,
+                              fontFamily: 'Poppins', // Enforce font
                             ),
                           ),
                         ],
@@ -177,29 +181,34 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                           const SizedBox(height: 20),
 
                           // Name
-                          buildTextField(
+                          ModernTextField(
                             controller: nameController,
-                            label: "Full Name",
-                            icon: Icons.person,
+                            hintText: "Full Name",
+                            labelText: "Full Name",
+                            prefixIcon: Icons.person,
                             validator: (value) =>
-                            value!.isEmpty ? "Enter your name" : null,
+                                value!.isEmpty ? "Enter your name" : null,
                           ),
+                          const SizedBox(height: 15),
 
                           // Contact
-                          buildTextField(
+                          ModernTextField(
                             controller: contactController,
-                            label: "Contact Number",
-                            icon: Icons.phone,
+                            hintText: "Contact Number",
+                            labelText: "Contact Number",
+                            prefixIcon: Icons.phone,
                             keyboardType: TextInputType.phone,
                             validator: (value) =>
-                            value!.isEmpty ? "Enter contact number" : null,
+                                value!.isEmpty ? "Enter contact number" : null,
                           ),
+                          const SizedBox(height: 15),
 
                           // Email
-                          buildTextField(
+                          ModernTextField(
                             controller: emailController,
-                            label: "Email Address",
-                            icon: Icons.email,
+                            hintText: "Email Address",
+                            labelText: "Email Address",
+                            prefixIcon: Icons.email,
                             keyboardType: TextInputType.emailAddress,
                             validator: (value) {
                               if (value == null || value.isEmpty) return "Enter email address";
@@ -207,12 +216,14 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                               return null;
                             },
                           ),
+                          const SizedBox(height: 15),
 
                           // Message
-                          buildTextField(
+                          ModernTextField(
                             controller: messageController,
-                            label: "Message",
-                            icon: Icons.message,
+                            hintText: "Message",
+                            labelText: "Message",
+                            prefixIcon: Icons.message,
                             maxLines: 4,
                             validator: (value) {
                               if (value == null || value.isEmpty) return "Enter your message";
@@ -224,35 +235,10 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
                           const SizedBox(height: 30),
 
                           // Submit Button with Loading State
-                          SizedBox(
-                            width: double.infinity,
-                            height: 52,
-                            child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(15),
-                                ),
-                              ),
-                              onPressed: _isLoading ? null : _submitForm,
-                              child: _isLoading
-                                  ? const SizedBox(
-                                height: 20,
-                                width: 20,
-                                child: CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              )
-                                  : const Text(
-                                "Submit",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
+                          ModernButton(
+                            text: "Submit",
+                            onPressed: _isLoading ? null : _submitForm,
+                            isLoading: _isLoading,
                           ),
                         ],
                       ),
@@ -270,33 +256,6 @@ class _ContactSupportScreenState extends State<ContactSupportScreen> {
   }
 
   // ================= REUSABLE TEXT FIELD =================
-  Widget buildTextField({
-    required TextEditingController controller,
-    required String label,
-    required IconData icon,
-    int maxLines = 1,
-    TextInputType keyboardType = TextInputType.text,
-    String? Function(String?)? validator,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
-      child: TextFormField(
-        controller: controller,
-        maxLines: maxLines,
-        keyboardType: keyboardType,
-        validator: validator,
-        decoration: InputDecoration(
-          labelText: label,
-          alignLabelWithHint: maxLines > 1, // Fixes label alignment for message box
-          prefixIcon: Icon(icon, color: AppColors.primary),
-          filled: true,
-          fillColor: Colors.grey.shade50,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide.none,
-          ),
-        ),
-      ),
-    );
-  }
+
 }
+
